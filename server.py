@@ -615,11 +615,13 @@ def convert_mp4_to_gif(video_filename, job_meta=None, max_dim=480, target_fps=12
             }
         if src_meta:
             gif_meta_path = os.path.join(OUTPUT_DIR, f"{gif_filename}.meta.json")
+            src_secs = src_meta.get("seconds") or (src_meta.get("video") or {}).get("seconds")
             with open(gif_meta_path, "w", encoding="utf-8") as f:
                 json.dump({
                     "id": job_meta.get("id") if job_meta else base_name.split("_")[0],
                     "mode": "gif",
                     "file": gif_filename,
+                    "seconds": src_secs,
                     "prompt_raw": src_meta.get("prompt_raw", ""),
                     "prompt_en": src_meta.get("prompt_en", ""),
                     "style": src_meta.get("style", "photorealistic"),
@@ -735,6 +737,12 @@ def save_job_meta(job):
         jid = job.get("id")
         if not jid:
             return
+        img_info = job.get("image") or {}
+        vid_info = job.get("video") or {}
+        secs = img_info.get("seconds") or vid_info.get("seconds")
+        if secs is None and job.get("started_at") and job.get("finished_at"):
+            secs = round(job["finished_at"] - job["started_at"], 1)
+
         meta_data = {
             "id": jid,
             "mode": job.get("mode"),
@@ -745,6 +753,7 @@ def save_job_meta(job):
             "params": dict(job.get("params") or {}),
             "image": job.get("image"),
             "video": job.get("video"),
+            "seconds": secs,
             "finished_at": job.get("finished_at") or time.time(),
         }
         meta_file = os.path.join(OUTPUT_DIR, f"{jid}.meta.json")
@@ -778,6 +787,11 @@ def get_file_metadata(fn):
     with LOCK:
         if jid in JOBS:
             j = JOBS[jid]
+            img = j.get("image") or {}
+            vid = j.get("video") or {}
+            secs = img.get("seconds") or vid.get("seconds")
+            if secs is None and j.get("started_at") and j.get("finished_at"):
+                secs = round(j["finished_at"] - j["started_at"], 1)
             return {
                 "id": jid,
                 "mode": j.get("mode"),
@@ -786,6 +800,9 @@ def get_file_metadata(fn):
                 "style": j.get("style", "photorealistic"),
                 "seed": j.get("seed", 0),
                 "params": j.get("params", {}),
+                "image": j.get("image"),
+                "video": j.get("video"),
+                "seconds": secs,
             }
 
     # 兜底：如果是 PNG 图片，尝试用 PIL 从 ComfyUI 内嵌的 prompt chunk 中恢复
@@ -880,12 +897,38 @@ def list_gallery(limit=100):
             continue
         item_type = "video" if ext == ".mp4" else ("gif" if ext == ".gif" else "image")
         meta = get_file_metadata(fn)
+        img_info = meta.get("image") if isinstance(meta.get("image"), dict) else {}
+        vid_info = meta.get("video") if isinstance(meta.get("video"), dict) else {}
+        secs = meta.get("seconds")
+        if secs is None or secs == 0:
+            if item_type == "video":
+                secs = vid_info.get("seconds")
+            elif item_type == "image":
+                secs = img_info.get("seconds")
+            else:
+                secs = vid_info.get("seconds") or img_info.get("seconds")
+                if secs is None:
+                    base_jid = fn.split("_")[0]
+                    j_meta_file = os.path.join(OUTPUT_DIR, f"{base_jid}.meta.json")
+                    if os.path.isfile(j_meta_file):
+                        try:
+                            with open(j_meta_file, "r", encoding="utf-8") as jf:
+                                j_data = json.load(jf)
+                                secs = j_data.get("seconds") or (j_data.get("video") or {}).get("seconds") or (j_data.get("image") or {}).get("seconds")
+                        except Exception:
+                            pass
+        w = meta.get("width") or img_info.get("width") or vid_info.get("width") or (meta.get("params") or {}).get("width") or (meta.get("params") or {}).get("v_width")
+        h = meta.get("height") or img_info.get("height") or vid_info.get("height") or (meta.get("params") or {}).get("height") or (meta.get("params") or {}).get("v_height")
+
         found.append({
             "file": fn,
             "type": item_type,
             "size": st.st_size,
             "mtime": st.st_mtime,
             "url": f"/outputs/{fn}",
+            "seconds": secs,
+            "width": w,
+            "height": h,
             "prompt_raw": meta.get("prompt_raw", ""),
             "prompt_en": meta.get("prompt_en", ""),
             "style": meta.get("style", "photorealistic"),

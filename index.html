@@ -2267,6 +2267,7 @@
         <span class="lightbox-counter" id="lightbox-counter">0 / 0</span>
         <span class="meta-pill highlight" id="lightbox-badge-type">图片</span>
         <span class="meta-pill" id="lightbox-badge-dim">HD</span>
+        <span class="meta-pill" id="lightbox-badge-time">耗时 --</span>
         <span class="meta-pill" id="lightbox-badge-seed">种子: —</span>
       </div>
       <div class="lightbox-header-actions">
@@ -3143,7 +3144,8 @@ function renderHeroStage(job) {
   $("hero-type-badge").textContent = isVideo ? "🎬 视频" : (isGif ? "🎞️ 动图" : "🎨 图片");
   $("hero-type-badge").className = `meta-pill ${isVideo ? "" : "highlight"}`;
   $("hero-dim-badge").textContent = output.width ? `${output.width} × ${output.height}` : (isVideo ? "768 × 512" : (isGif ? "480 × 480" : "HD"));
-  $("hero-time-badge").textContent = output.seconds ? `耗时 ${output.seconds}s` : "已就绪";
+  const secs = output.seconds || job.seconds || (job.image && job.image.seconds) || (job.video && job.video.seconds);
+  $("hero-time-badge").textContent = secs ? `耗时 ${secs}s` : "已就绪";
   $("hero-seed-badge").textContent = `种子: ${job.seed}`;
 
   $("hero-to-video-btn").style.display = isVideo ? "none" : "inline-flex";
@@ -3361,7 +3363,7 @@ function renderGalleryItems() {
       ? `<video src="${it.url}" muted preload="metadata"></video><span class="${badgeClass}">${badgeText}</span>`
       : `<img src="${it.url}" alt="${esc(it.file)}" loading="lazy" /><span class="${badgeClass}">${badgeText}</span>`;
     return `
-      <div class="gallery-item" data-idx="${idx}" draggable="true" title="${esc(it.prompt_raw || it.prompt_en || it.file)}">
+      <div class="gallery-item" data-idx="${idx}" draggable="true" title="${esc(it.prompt_raw || it.prompt_en || it.file)}${it.seconds ? ` (耗时 ${it.seconds}s)` : ''}">
         ${media}
         <button class="gallery-del-btn" data-file="${esc(it.file)}" title="从磁盘彻底删除此产物">✕</button>
       </div>
@@ -3430,6 +3432,7 @@ async function deleteGalleryFile(file) {
 function loadGalleryItemToStage(item) {
   const isVideo = item.type === "video";
   const isGif = item.type === "gif" || (item.file && item.file.toLowerCase().endsWith(".gif"));
+  const secs = item.seconds || (item.image && item.image.seconds) || (item.video && item.video.seconds) || 0;
   const fakeJob = {
     mode: isVideo ? "video" : (isGif ? "gif" : "image"),
     seed: (item.seed !== undefined && item.seed !== null && item.seed !== 0) ? item.seed : (item.params?.seed || "—"),
@@ -3438,9 +3441,10 @@ function loadGalleryItemToStage(item) {
     style: item.style || "photorealistic",
     params: item.params || {},
     logs: [`从画廊载入产物 ${item.file}`],
-    image: (!isVideo && !isGif) ? { file: item.file, seconds: 0 } : null,
-    video: isVideo ? { file: item.file, seconds: 0 } : null,
-    gif: isGif ? { file: item.file, seconds: 0 } : null,
+    seconds: secs,
+    image: (!isVideo && !isGif) ? { file: item.file, seconds: secs, width: item.width, height: item.height } : null,
+    video: isVideo ? { file: item.file, seconds: secs, width: item.width, height: item.height } : null,
+    gif: isGif ? { file: item.file, seconds: secs, width: item.width, height: item.height } : null,
   };
   renderHeroStage(fakeJob);
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3525,9 +3529,17 @@ function renderLightboxItem() {
   $("lightbox-badge-type").textContent = isVideo ? "🎬 视频" : (isGif ? "🎞️ 动图" : "🎨 图片");
   $("lightbox-badge-type").className = `meta-pill ${isVideo ? "" : "highlight"}`;
 
-  const w = item.params?.width;
-  const h = item.params?.height;
+  const w = item.width || item.params?.width || (item.image && item.image.width) || (item.video && item.video.width);
+  const h = item.height || item.params?.height || (item.image && item.image.height) || (item.video && item.video.height);
   $("lightbox-badge-dim").textContent = (w && h) ? `${w} × ${h}` : (item.size ? `${(item.size / 1024 / 1024).toFixed(1)} MB` : "HD");
+
+  const secs = item.seconds ?? (item.image && item.image.seconds) ?? (item.video && item.video.seconds);
+  if (secs !== undefined && secs !== null && secs !== "" && Number(secs) > 0) {
+    $("lightbox-badge-time").textContent = `耗时 ${secs}s`;
+    $("lightbox-badge-time").style.display = "inline-flex";
+  } else {
+    $("lightbox-badge-time").style.display = "none";
+  }
 
   const seed = (item.seed !== undefined && item.seed !== null && item.seed !== 0) ? item.seed : (item.params?.seed || "—");
   $("lightbox-badge-seed").textContent = `种子: ${seed}`;
