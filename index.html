@@ -1729,7 +1729,7 @@
         <!-- 自动导出 GIF 选项 -->
         <div style="margin-top:.75rem;padding:.5rem .75rem;background:rgba(6,182,212,0.06);border:1px dashed rgba(6,182,212,0.3);border-radius:8px;display:flex;align-items:center;justify-content:space-between">
           <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin:0;font-size:.78rem;font-weight:600;color:#38bdf8">
-            <input type="checkbox" id="auto-gif" style="width:15px;height:15px;accent-color:#06b6d4;cursor:pointer" />
+            <input type="checkbox" id="auto-gif" checked style="width:15px;height:15px;accent-color:#06b6d4;cursor:pointer" />
             <span>🎞️ 生成后自动导出循环 GIF</span>
           </label>
           <span style="font-size:.7rem;color:#94a3b8">即得即用 · 免转码</span>
@@ -2573,6 +2573,20 @@ function updateEstimate() {
 }
 $("length").onchange = updateEstimate;
 $("steps").onchange = updateEstimate;
+
+// 自动导出 GIF 开关偏好持久化 (默认开启)
+const autoGifEl = $("auto-gif");
+if (autoGifEl) {
+  const saved = localStorage.getItem("comfy_auto_gif");
+  if (saved !== null) {
+    autoGifEl.checked = saved === "true";
+  } else {
+    autoGifEl.checked = true;
+  }
+  autoGifEl.onchange = () => {
+    localStorage.setItem("comfy_auto_gif", autoGifEl.checked);
+  };
+}
 
 // SDXL-Lightning 4-step 极速加速联动控制
 function initLightningToggles() {

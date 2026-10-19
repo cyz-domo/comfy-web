@@ -753,6 +753,7 @@ def save_job_meta(job):
             "params": dict(job.get("params") or {}),
             "image": job.get("image"),
             "video": job.get("video"),
+            "gif": job.get("gif"),
             "seconds": secs,
             "finished_at": job.get("finished_at") or time.time(),
         }
@@ -1360,6 +1361,7 @@ def serialize_job(job, position=None):
         "logs": list(job.get("logs", [])),
         "image": job.get("image"),
         "video": job.get("video"),
+        "gif": job.get("gif"),
         "seed": job.get("seed", 0),
         "params": dict(job.get("params") or {}),
         "created_at": job.get("created_at", 0),
