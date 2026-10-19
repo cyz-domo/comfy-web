@@ -9,6 +9,7 @@ import mimetypes
 import os
 import re
 import subprocess
+import sys
 import threading
 import time
 import urllib.error
@@ -987,6 +988,27 @@ def new_job(mode, prompt, params, ref, prompt_en="", style="photorealistic"):
     return job["id"]
 
 
+def is_local_client(handler):
+    """判断请求是否来自服务器本机，严格拦截任何公网穿透/反向代理/局域网远程访问"""
+    # 检查反向代理/公网穿透常用请求头（若有说明经过了外网或代理映射转发）
+    for h in ("X-Forwarded-For", "X-Real-IP", "CF-Connecting-IP", "X-Client-IP", "True-Client-IP"):
+        val = handler.headers.get(h)
+        if val:
+            ips = [x.strip() for x in val.split(",")]
+            for ip in ips:
+                if ip not in ("127.0.0.1", "::1", "localhost"):
+                    return False
+    # 检查底层 socket 客户端直连 IP
+    client_ip = handler.client_address[0] if handler.client_address else ""
+    if client_ip not in ("127.0.0.1", "::1", "localhost"):
+        return False
+    # 检查 Host 头部（防止外网域名解析映射进入）
+    host = handler.headers.get("Host", "").split(":")[0].strip().lower()
+    if host and host not in ("127.0.0.1", "localhost", "::1"):
+        return False
+    return True
+
+
 # ---------- 路由 ----------
 
 class Handler(BaseHTTPRequestHandler):
@@ -1048,6 +1070,7 @@ class Handler(BaseHTTPRequestHandler):
                         "gpu": dev.get("name"),
                         "vram_gb": round((dev.get("vram_total") or 0) / 1024**3, 1),
                         "llm": llm_view(),
+                        "is_local": is_local_client(self),
                         "models": {
                             "image": CONFIG["image_checkpoint"],
                             "video": CONFIG["video_checkpoint"],
@@ -1055,7 +1078,7 @@ class Handler(BaseHTTPRequestHandler):
                     },
                 )
             except Exception as e:
-                self.send_json(200, {"comfy": False, "error": str(e), "llm": llm_view()})
+                self.send_json(200, {"comfy": False, "error": str(e), "llm": llm_view(), "is_local": is_local_client(self)})
         elif path == "/api/settings":
             self.send_json(200, llm_view())
         elif path == "/api/presets":
@@ -1150,8 +1173,28 @@ class Handler(BaseHTTPRequestHandler):
             self.handle_settings_test(body)
         elif path == "/api/settings/models":
             self.handle_settings_models(body)
+        elif path == "/api/gallery/open-folder":
+            self.handle_open_folder()
         else:
             self.send_json(404, {"error": "not found"})
+
+    def handle_open_folder(self):
+        if not is_local_client(self):
+            self.send_json(403, {"error": "仅支持在运行本服务的电脑本机打开文件夹，远程网络或穿透映射访问已被禁止。"})
+            return
+        try:
+            target = os.path.abspath(OUTPUT_DIR)
+            if not os.path.exists(target):
+                os.makedirs(target, exist_ok=True)
+            if sys.platform == "win32":
+                os.startfile(target)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", target])
+            else:
+                subprocess.Popen(["xdg-open", target])
+            self.send_json(200, {"ok": True, "path": target})
+        except Exception as e:
+            self.send_json(500, {"error": f"打开文件夹失败: {e}"})
 
     def handle_gallery_delete(self, body):
         file = os.path.basename(str(body.get("file") or "").strip())

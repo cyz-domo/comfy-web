@@ -40,17 +40,18 @@
     background: rgba(17, 24, 39, 0.88);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    padding: 0.65rem 1.25rem;
+    padding: 0.6rem 1.25rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.75rem;
     position: sticky;
     top: 0;
     z-index: 50;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    white-space: nowrap;
   }
-  .brand { display: flex; align-items: center; gap: 0.75rem; }
+  .brand { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
   .brand-logo {
     width: 34px; height: 34px; border-radius: 9px;
     background: linear-gradient(135deg, #10b981, #06b6d4);
@@ -66,7 +67,7 @@
 
   /* Real-Time Hardware Telemetry Monitor Bar */
   .monitor-bar {
-    display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 0.45rem; flex-wrap: nowrap; overflow-x: auto;
   }
   .monitor-pill {
     background: #141c2c;
@@ -590,12 +591,9 @@
 <header>
   <div class="brand">
     <div class="brand-logo">✨</div>
-    <div>
-      <div style="display:flex;align-items:center;gap:.5rem">
-        <span class="brand-title">ComfyWeb Studio</span>
-        <span class="brand-badge">SDXL + LTX-Video</span>
-      </div>
-      <div style="font-size:.72rem;color:var(--fg-muted)">AI 绘画 & 视频创作平台 · 本地硬件全速驱动</div>
+    <div style="display:flex;align-items:center;gap:.45rem">
+      <span class="brand-title">ComfyWeb</span>
+      <span class="brand-badge">SDXL · LTX</span>
     </div>
   </div>
 
@@ -962,6 +960,7 @@
           <button class="filter-pill" data-filter="image">图片</button>
           <button class="filter-pill" data-filter="video">视频</button>
           <button class="filter-pill" id="btn-refresh-gallery">🔄 刷新</button>
+          <button class="filter-pill" id="btn-open-folder" title="在本地文件管理器中打开 outputs 文件夹 (仅本机可用)">📂 打开文件夹</button>
         </div>
       </div>
       <div class="gallery-grid" id="gallery-grid">
@@ -1092,13 +1091,15 @@ async function pollHardwareMonitor() {
       $("mon-temp").textContent = "--°C";
     }
 
-    // ComfyUI 在线状态
+    // ComfyUI 状态 (精简显示，鼠标悬浮显示详情)
     if (data.comfy) {
       $("comfy-dot").className = "status-dot green";
-      $("comfy-text").textContent = "ComfyUI 在线";
+      $("comfy-text").textContent = "ComfyUI";
+      $("comfy-status-pill").title = "ComfyUI 引擎在线";
     } else {
       $("comfy-dot").className = "status-dot red";
       $("comfy-text").textContent = "ComfyUI 离线";
+      $("comfy-status-pill").title = "ComfyUI 未连接，请确认 127.0.0.1:8188 是否启动";
     }
   } catch (err) {
     // 忽略静默网络错误
@@ -1691,6 +1692,26 @@ document.querySelectorAll(".gallery-filter-row .filter-pill[data-filter]").forEa
 });
 $("btn-refresh-gallery").onclick = () => refreshGallery();
 
+function isLocalHostClient() {
+  const h = window.location.hostname.toLowerCase();
+  return h === "localhost" || h === "127.0.0.1" || h === "::1" || h === "[::1]";
+}
+
+$("btn-open-folder").onclick = async () => {
+  if ($("btn-open-folder").disabled || !isLocalHostClient()) {
+    alert("该功能仅支持在部署本服务的电脑本机打开文件夹。\n当前为远程或网络映射访问，为了系统安全禁止触发打开本地文件夹。");
+    return;
+  }
+  try {
+    const res = await api("/api/gallery/open-folder", { method: "POST" });
+    if (!res.ok) {
+      alert("打开文件夹失败: " + (res.error || "未知错误"));
+    }
+  } catch (err) {
+    alert("打开文件夹失败: " + err.message);
+  }
+};
+
 let galleryData = [];
 async function refreshGallery() {
   try {
@@ -1806,13 +1827,33 @@ async function checkSystemStatus() {
     const llm = st.llm || {};
     if (llm.ready) {
       $("llm-dot").className = "status-dot green";
-      $("llm-text").textContent = `LLM 已就绪 (${llm.model || "Active"})`;
+      $("llm-text").textContent = "LLM 就绪";
+      $("llm-status-pill").title = `LLM 已就绪 (${llm.model || "Active"}) · 点击配置`;
     } else if (llm.enabled && !llm.has_key) {
       $("llm-dot").className = "status-dot red";
-      $("llm-text").textContent = "LLM 待填 Key";
+      $("llm-text").textContent = "LLM 待配置";
+      $("llm-status-pill").title = "LLM 待填 Key · 点击配置";
     } else {
       $("llm-dot").className = "status-dot red";
       $("llm-text").textContent = "LLM 未就绪";
+      $("llm-status-pill").title = "LLM 未启用或未就绪 · 点击配置";
+    }
+
+    // 本地文件夹打开权限控制 (仅本机访问可用)
+    const btnOpenFolder = $("btn-open-folder");
+    if (btnOpenFolder) {
+      const isLocal = (st && st.is_local !== undefined) ? st.is_local : isLocalHostClient();
+      if (!isLocal) {
+        btnOpenFolder.disabled = true;
+        btnOpenFolder.style.opacity = "0.45";
+        btnOpenFolder.style.cursor = "not-allowed";
+        btnOpenFolder.title = "已禁用：仅支持在部署本服务的电脑本机打开文件夹（当前为远程/网络映射访问）";
+      } else {
+        btnOpenFolder.disabled = false;
+        btnOpenFolder.style.opacity = "1";
+        btnOpenFolder.style.cursor = "pointer";
+        btnOpenFolder.title = "在本地文件管理器中打开 outputs 文件夹";
+      }
     }
 
     fillSettingsForm(llm);
