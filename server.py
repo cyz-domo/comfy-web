@@ -576,6 +576,7 @@ def convert_mp4_to_gif(video_filename, job_meta=None, max_dim=480, target_fps=12
     gif_filename = (base_name[:-4] + "_anim.gif") if base_name.endswith("_vid") else (base_name + ".gif")
     dst_path = os.path.join(OUTPUT_DIR, gif_filename)
 
+    container = None
     try:
         container = av.open(src_path)
         stream = container.streams.video[0]
@@ -590,6 +591,13 @@ def convert_mp4_to_gif(video_filename, job_meta=None, max_dim=480, target_fps=12
                 im = frame.to_image()
                 im.thumbnail((max_dim, max_dim), Image.Resampling.BILINEAR)
                 frames.append(im.convert("P", palette=Image.Palette.ADAPTIVE, colors=256))
+
+        # 解码完成后立即显式关闭容器，彻底释放底层文件句柄锁
+        try:
+            container.close()
+        except Exception:
+            pass
+        container = None
 
         if not frames:
             return None
@@ -633,6 +641,12 @@ def convert_mp4_to_gif(video_filename, job_meta=None, max_dim=480, target_fps=12
     except Exception as e:
         logger.error(f"转换 GIF 异常: {e}")
         return None
+    finally:
+        if container is not None:
+            try:
+                container.close()
+            except Exception:
+                pass
 
 
 STANDARD_UA = (
@@ -812,8 +826,8 @@ def get_file_metadata(fn):
     if ext == ".png" and os.path.isfile(full_path):
         try:
             from PIL import Image
-            im = Image.open(full_path)
-            raw_prompt_json = im.info.get("prompt")
+            with Image.open(full_path) as im:
+                raw_prompt_json = im.info.get("prompt")
             if raw_prompt_json:
                 p = json.loads(raw_prompt_json)
                 pos_prompt = ""
@@ -1500,6 +1514,38 @@ def is_local_client(handler):
     return True
 
 
+def safe_remove_file(filepath, retries=5, delay=0.25):
+    """安全删除文件，带垃圾回收与多次重试，化解 Windows [WinError 32] 句柄占用问题"""
+    import gc
+    last_err = None
+    for attempt in range(retries):
+        try:
+            gc.collect()
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            return True, None
+        except (PermissionError, OSError) as e:
+            last_err = e
+            time.sleep(delay)
+
+    # 兜底：若文件仍被外部播放器或句柄短暂锁定，尝试原子移动/重命名到 outputs/.trash 暂存区
+    try:
+        gc.collect()
+        trash_dir = os.path.join(OUTPUT_DIR, ".trash")
+        os.makedirs(trash_dir, exist_ok=True)
+        trash_path = os.path.join(trash_dir, f"{os.path.basename(filepath)}.{uuid.uuid4().hex[:6]}.del")
+        os.replace(filepath, trash_path)
+        try:
+            os.remove(trash_path)
+        except Exception:
+            pass
+        return True, None
+    except Exception:
+        pass
+
+    return False, str(last_err)
+
+
 # ---------- 路由 ----------
 
 class Handler(BaseHTTPRequestHandler):
@@ -1793,25 +1839,23 @@ class Handler(BaseHTTPRequestHandler):
         if not os.path.isfile(full):
             self.send_json(404, {"error": "文件不存在或已被删除"})
             return
-        try:
-            os.remove(full)
-            jid = file.split("_")[0]
-            meta_path = os.path.join(OUTPUT_DIR, f"{jid}.meta.json")
-            if os.path.isfile(meta_path):
-                try:
-                    os.remove(meta_path)
-                except OSError:
-                    pass
-            # 同时删除专属的 {file}.meta.json (例如 GIF 元数据)
-            spec_meta = os.path.join(OUTPUT_DIR, f"{file}.meta.json")
-            if os.path.isfile(spec_meta):
-                try:
-                    os.remove(spec_meta)
-                except OSError:
-                    pass
-            self.send_json(200, {"ok": True, "file": file})
-        except Exception as e:
-            self.send_json(500, {"error": f"删除失败: {e}"})
+
+        ok, err = safe_remove_file(full)
+        if not ok:
+            self.send_json(500, {"error": f"删除失败: {err}"})
+            return
+
+        # 同步删除关联的元数据
+        jid = file.split("_")[0]
+        meta_path = os.path.join(OUTPUT_DIR, f"{jid}.meta.json")
+        if os.path.isfile(meta_path):
+            safe_remove_file(meta_path, retries=2)
+        # 同时删除专属的 {file}.meta.json (例如 GIF 元数据)
+        spec_meta = os.path.join(OUTPUT_DIR, f"{file}.meta.json")
+        if os.path.isfile(spec_meta):
+            safe_remove_file(spec_meta, retries=2)
+
+        self.send_json(200, {"ok": True, "file": file})
 
     def handle_upload(self):
         ctype = self.headers.get("Content-Type", "")

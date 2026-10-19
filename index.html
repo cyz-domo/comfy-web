@@ -3407,6 +3407,15 @@ function renderGalleryItems() {
 }
 
 async function deleteGalleryFile(file) {
+  // 释放页面中所有正在缓冲/播放该文件的 video 元素，断开连接避免 Windows 占用
+  document.querySelectorAll("video").forEach(v => {
+    if (v.src && (v.src.endsWith(file) || v.src.includes(file))) {
+      v.pause();
+      v.removeAttribute("src");
+      v.load();
+    }
+  });
+
   try {
     await api("/api/gallery/delete", {
       method: "POST",
