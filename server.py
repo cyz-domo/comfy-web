@@ -826,19 +826,41 @@ def list_local_models():
     checkpoints.sort()
 
     loras = []
+    lora_details = []
     if os.path.isdir(loras_dir):
         for root, _, files in os.walk(loras_dir):
             for f in files:
                 if f.lower().endswith(valid_exts):
                     rel = os.path.relpath(os.path.join(root, f), loras_dir).replace("\\", "/")
                     loras.append(rel)
+                    full_p = os.path.join(root, f)
+                    base, _ = os.path.splitext(full_p)
+                    preview = None
+                    for p_ext in (".preview.png", ".preview.jpg", ".preview.jpeg", ".preview.webp", ".png", ".jpg", ".jpeg", ".webp"):
+                        cand = base + p_ext
+                        if os.path.isfile(cand):
+                            preview = f"/api/loras/preview?name={urllib.parse.quote(rel)}"
+                            break
+                    sz = 0.0
+                    try:
+                        sz = round(os.path.getsize(full_p) / (1024 * 1024), 1)
+                    except OSError:
+                        pass
+                    lora_details.append({
+                        "name": rel,
+                        "size_mb": sz,
+                        "preview": preview,
+                        "is_lightning": "lightning" in rel.lower(),
+                    })
     loras.sort()
+    lora_details.sort(key=lambda x: x["name"])
 
     return {
         "comfy_dir": comfy_dir,
         "loras_dir": loras_dir,
         "checkpoints": checkpoints,
         "loras": loras,
+        "lora_details": lora_details,
         "current_checkpoint": CONFIG.get("image_checkpoint", "sd_xl_base_1.0.safetensors"),
     }
 
@@ -1383,6 +1405,41 @@ class Handler(BaseHTTPRequestHandler):
             ctype = mimetypes.guess_type(name)[0] or "application/octet-stream"
             with open(full, "rb") as f:
                 self.send_blob(200, f.read(), ctype)
+        elif path.startswith("/assets/"):
+            rel_path = path[len("/assets/"):].replace("\\", "/")
+            if ".." in rel_path:
+                self.send_json(400, {"error": "非法路径"})
+                return
+            full = os.path.join(HERE, "assets", rel_path)
+            if not os.path.isfile(full):
+                self.send_json(404, {"error": "not found"})
+                return
+            ctype = mimetypes.guess_type(full)[0] or "application/octet-stream"
+            with open(full, "rb") as f:
+                self.send_blob(200, f.read(), ctype)
+        elif path == "/api/loras/preview":
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            lora_rel = (q.get("name") or [""])[0]
+            if not lora_rel or ".." in lora_rel:
+                self.send_json(400, {"error": "非法文件名"})
+                return
+            comfy_dir = CONFIG.get("comfy_dir") or resolve_comfy_dir()
+            loras_dir = os.path.join(comfy_dir.replace("\\", "/"), "models", "loras")
+            full_path = os.path.join(loras_dir, lora_rel)
+            base, _ = os.path.splitext(full_path)
+            found_img = None
+            for p_ext in (".preview.png", ".preview.jpg", ".preview.jpeg", ".preview.webp", ".png", ".jpg", ".jpeg", ".webp"):
+                cand = base + p_ext
+                if os.path.isfile(cand):
+                    found_img = cand
+                    break
+            if not found_img:
+                self.send_json(404, {"error": "未找到预览缩略图"})
+                return
+            with open(found_img, "rb") as f:
+                blob = f.read()
+            ctype = mimetypes.guess_type(found_img)[0] or "image/jpeg"
+            self.send_blob(200, blob, ctype)
         elif path == "/api/status":
             try:
                 st = comfy_get("/system_stats", timeout=5)

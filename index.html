@@ -576,6 +576,230 @@
   .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
   .modal-title { font-size: 1.05rem; font-weight: 700; color: #fff; }
 
+  /* Gallery Lightbox Studio Viewer */
+  .lightbox-overlay {
+    position: fixed; inset: 0;
+    background: rgba(4, 7, 14, 0.94);
+    backdrop-filter: blur(14px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .lightbox-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .lightbox-container {
+    width: 100%;
+    max-width: 1420px;
+    height: 94vh;
+    display: flex;
+    flex-direction: column;
+    background: #0d1322;
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+    overflow: hidden;
+    position: relative;
+  }
+  .lightbox-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1.1rem;
+    background: rgba(17, 24, 39, 0.95);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 0.75rem;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+  .lightbox-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+  .lightbox-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .lightbox-counter {
+    background: #172236;
+    border: 1px solid var(--border);
+    color: #38bdf8;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-family: ui-monospace, Consolas, monospace;
+    font-weight: 700;
+  }
+  .lightbox-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .lightbox-wheel-tip {
+    font-size: 0.72rem;
+    color: var(--fg-muted);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0.22rem 0.65rem;
+    border-radius: 6px;
+    border: 1px dashed var(--border);
+    user-select: none;
+  }
+  .lightbox-btn-close {
+    font-size: 1.1rem;
+    padding: 0.25rem 0.6rem;
+    line-height: 1;
+    border-radius: 8px;
+  }
+  .lightbox-btn-close:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+  }
+  .lightbox-body {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #080c16;
+  }
+  .lightbox-media-wrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+    overflow: hidden;
+    position: relative;
+  }
+  .lightbox-media-wrap.zoomed {
+    overflow: auto;
+    display: block;
+    cursor: grab;
+  }
+  .lightbox-media-wrap.zoomed:active {
+    cursor: grabbing;
+  }
+  .lightbox-media-wrap img, .lightbox-media-wrap video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .lightbox-media-wrap img.can-zoom {
+    cursor: zoom-in;
+  }
+  .lightbox-media-wrap.zoomed img {
+    max-width: none;
+    max-height: none;
+    width: auto;
+    height: auto;
+    display: block;
+    margin: 1.5rem auto;
+    cursor: zoom-out;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.9);
+  }
+  .lightbox-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 72px;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid var(--border-light);
+    color: #f1f5f9;
+    font-size: 2.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+    z-index: 10;
+    user-select: none;
+  }
+  .lightbox-nav-btn:hover {
+    background: #1e293b;
+    color: var(--accent);
+    border-color: var(--accent);
+    transform: translateY(-50%) scale(1.08);
+  }
+  .lightbox-nav-btn.prev { left: 1rem; }
+  .lightbox-nav-btn.next { right: 1rem; }
+  .lightbox-nav-btn:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    transform: translateY(-50%);
+  }
+  .lightbox-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.75rem 1rem;
+    background: rgba(17, 24, 39, 0.95);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .lightbox-prompt-box {
+    max-height: 56px;
+    overflow-y: auto;
+    font-size: 0.76rem;
+    line-height: 1.45;
+    color: #cbd5e1;
+    background: #090e1a;
+    padding: 0.45rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .lightbox-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .lightbox-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+  .gallery-item::after {
+    content: "🔍";
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.72);
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 0.65rem;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+  }
+  .gallery-item:hover::after {
+    opacity: 1;
+  }
+
   /* Helpers */
   .hint { font-size: 0.74rem; color: var(--fg-muted); margin-top: 0.35rem; line-height: 1.4; }
   .hint.warn { color: var(--warning); }
@@ -758,9 +982,11 @@
     box-shadow: 0 0 12px rgba(236, 72, 153, 0.3);
   }
   .char-avatar {
-    width: 38px;
-    height: 38px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
+    position: relative;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -769,9 +995,105 @@
     color: #fff;
     margin-bottom: 0.35rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    border: 2px solid rgba(255,255,255,0.15);
+    background: #1e293b;
+    flex-shrink: 0;
+  }
+  .char-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    position: absolute;
+    inset: 0;
+  }
+  .char-avatar-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .char-name { font-size: 0.78rem; font-weight: 600; color: #fff; line-height: 1.25; margin-bottom: 0.15rem; }
   .char-franchise { font-size: 0.66rem; color: var(--fg-muted); }
+
+  /* LoRA Visual Cards */
+  .lora-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+    gap: 0.55rem;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    margin-bottom: 0.65rem;
+  }
+  .lora-card {
+    background: #0d131f;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    position: relative;
+    user-select: none;
+  }
+  .lora-card:hover {
+    border-color: #ec4899;
+    transform: translateY(-2px);
+    background: #151d2f;
+  }
+  .lora-card.active {
+    border-color: #ec4899;
+    background: rgba(236, 72, 153, 0.16);
+    box-shadow: 0 0 12px rgba(236, 72, 153, 0.3);
+  }
+  .lora-card-preview {
+    width: 100%;
+    aspect-ratio: 1.2;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #080d1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .lora-card-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .lora-card-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-size: 0.62rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    backdrop-filter: blur(4px);
+  }
+  .lora-card-title {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lora-card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.66rem;
+    color: var(--fg-muted);
+  }
 
   .selected-char-banner {
     background: #0d1424;
@@ -1497,12 +1819,19 @@
 
       <!-- 子面板 B: 本地角色 LoRA -->
       <div id="anime-box-lora" hidden>
-        <label>选择已安装的 LoRA 模型</label>
-        <select id="anime-lora-select">
-          <option value="">(扫描中...)</option>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <label style="margin:0">本地已安装的 LoRA 模型 (点击选择)</label>
+          <span class="hint" id="anime-lora-count" style="margin:0;color:#f472b6">检测中...</span>
+        </div>
+
+        <!-- 视觉 LoRA 卡片网格 -->
+        <div class="lora-card-grid" id="anime-lora-grid" style="margin-top:.45rem"></div>
+
+        <select id="anime-lora-select" style="display:none">
+          <option value="">-- 请选择 LoRA 模型 --</option>
         </select>
         <div class="hint" id="anime-lora-hint" style="margin-top:.35rem">
-          💡 请将下载的二次元 LoRA (.safetensors) 放入 ComfyUI 的 <code>models/loras/</code> 目录
+          💡 请将下载的二次元 LoRA (.safetensors) 与同名预览图放入 <code>ComfyUI/models/loras/</code> 目录
         </div>
 
         <div style="margin-top:.75rem">
@@ -1532,9 +1861,32 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title"><span class="card-title-icon">📝</span> 剧情二创与动作场景 (怎么跑？)</span>
+        <span class="hint" style="margin:0">下拉快速选场景</span>
       </div>
 
-      <label>中文自然语言二创场景 (服装 / 动作 / 剧情 / 心境)</label>
+      <!-- 场景分类与快速下拉选择 -->
+      <label>🎭 精选二创场景库 (选择后自动填入下方)</label>
+      <div class="row-2" style="margin-top:.2rem">
+        <div>
+          <select id="anime-scenario-cat" title="选择场景主题分类">
+            <option value="all">🌟 全部场景分类</option>
+            <option value="daily">☕ 现代都市与私服漫步</option>
+            <option value="school">🎒 青春校园与黄昏漫步</option>
+            <option value="holiday">🏖️ 海滨夏日与假日漫步</option>
+            <option value="home">🎮 宅家惬意与日常心绪</option>
+            <option value="traditional">👘 和风古韵与传统节庆</option>
+            <option value="epic">⚔️ 奇幻史诗与战斗高光</option>
+            <option value="dream">🌙 梦幻星空与浪漫夜色</option>
+          </select>
+        </div>
+        <div>
+          <select id="anime-scenario-select">
+            <option value="">-- 点击选择丰富场景库 (25+精选) --</option>
+          </select>
+        </div>
+      </div>
+
+      <label style="margin-top:.75rem">中文自然语言二创场景 (服装 / 动作 / 剧情 / 心境，支持自由微调编辑)</label>
       <textarea id="anime-prompt-zh" placeholder="用自然中文描述二创脑洞，例如：穿着现代冬日黑色大风衣，在漫天飞雪的便利店门口捧着热咖啡，回眸温柔微笑..."></textarea>
 
       <!-- 灵感二创词条 -->
@@ -1578,8 +1930,19 @@
       <select id="anime-checkpoint-select">
         <option value="">(扫描中...)</option>
       </select>
-      <div class="hint" id="anime-ckpt-hint">
-        💡 推荐放入 <b>WAI-illustrious-SDXL</b> 或动漫 Checkpoint 以获得最佳 Danbooru 还原度
+
+      <!-- 底模选型指南与说明小卡片 -->
+      <div class="ckpt-guide-box" style="margin-top:.45rem;background:#0d1424;border:1px solid rgba(147,197,253,0.22);border-radius:8px;padding:.6rem .8rem;font-size:.73rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" id="anime-ckpt-guide-toggle">
+          <span style="font-weight:700;color:#93c5fd">💡 Checkpoint 底模选型指南与说明</span>
+          <span style="color:#60a5fa" id="anime-ckpt-guide-arrow">展开解析 ▼</span>
+        </div>
+        <div id="anime-ckpt-guide-content" hidden style="margin-top:.5rem;line-height:1.6;color:#cbd5e1;border-top:1px dashed rgba(255,255,255,0.08);padding-top:.45rem">
+          <div>• <b>sd_xl_base_1.0.safetensors</b>：【当前默认】SDXL 官方原生底模。通用与写实质感佳。生动漫图时请务必开启上方【大模型编译】，由 LLM 将中文转为精准 Danbooru 逗号标签，即可高品质出图。</div>
+          <div style="margin-top:.35rem">• <b>waiIllustriousSDXL / Illustrious-XL</b>：【二次元二创最佳推荐】针对 Danbooru 知识库深度调优，对动漫角色发型、瞳色、服装神韵、线条细腻度还原极强，强烈推荐！</div>
+          <div style="margin-top:.35rem">• <b>Animagine XL / Pony Diffusion</b>：【插画与构图神模】动漫插画张力极佳，色彩绚丽。</div>
+          <div style="margin-top:.35rem;color:#94a3b8">📁 <b>模型下载存放</b>：请将下载的 <code>.safetensors</code> 文件放入 <code>ComfyUI/models/checkpoints/</code> 目录，刷新页面即可直接选用。</div>
+        </div>
       </div>
 
       <!-- 推荐画幅比例 -->
@@ -1857,6 +2220,52 @@
 
     <div class="hint" id="llm-test-result" style="margin-top:.75rem"></div>
     <div class="hint warn" style="margin-top:.4rem">🔒 API Key 仅保存在本机当前目录的 config.json 中，绝不向外暴露。</div>
+  </div>
+</div>
+
+<!-- 画廊产物全屏大图灯箱 (Lightbox) -->
+<div class="lightbox-overlay" id="gallery-lightbox-modal" tabindex="-1">
+  <div class="lightbox-container" id="lightbox-container">
+    <!-- 顶部状态栏 -->
+    <div class="lightbox-header">
+      <div class="lightbox-title-wrap">
+        <span class="lightbox-title"><span>🖼️</span> 产物高清大图</span>
+        <span class="lightbox-counter" id="lightbox-counter">0 / 0</span>
+        <span class="meta-pill highlight" id="lightbox-badge-type">图片</span>
+        <span class="meta-pill" id="lightbox-badge-dim">HD</span>
+        <span class="meta-pill" id="lightbox-badge-seed">种子: —</span>
+      </div>
+      <div class="lightbox-header-actions">
+        <span class="lightbox-wheel-tip">🖱️ 滚轮上下滚动 或 按键 ↑/↓ 切换 · 点击大图切换 1:1 细节</span>
+        <button class="btn-ghost" id="lightbox-btn-zoom" title="切换 1:1 像素细节 / 适应屏幕">🔍 1:1 细节</button>
+        <button class="btn-ghost lightbox-btn-close" id="lightbox-btn-close" title="关闭大图预览 (Esc)">✕</button>
+      </div>
+    </div>
+
+    <!-- 中间预览展示区 -->
+    <div class="lightbox-body">
+      <button class="lightbox-nav-btn prev" id="lightbox-btn-prev" title="上一张 (↑ 或 ←)">‹</button>
+      <div class="lightbox-media-wrap" id="lightbox-media-wrap"></div>
+      <button class="lightbox-nav-btn next" id="lightbox-btn-next" title="下一张 (↓ 或 →)">›</button>
+    </div>
+
+    <!-- 底部产物信息与快捷流转栏 -->
+    <div class="lightbox-footer">
+      <div class="lightbox-prompt-box" id="lightbox-prompt-box"></div>
+      <div class="lightbox-actions">
+        <div class="lightbox-actions-group">
+          <a class="btn-ghost" id="lightbox-btn-download" download href="#" target="_blank">📥 下载原图</a>
+          <button class="btn-ghost" id="lightbox-btn-copy-prompt">📋 复制提示词</button>
+          <button class="btn-ghost" id="lightbox-btn-reuse" title="复用此产物的提示词与参数到工作区">🎲 复用参数</button>
+          <button class="btn-ghost" id="lightbox-btn-to-i2i" title="以此图作为参考图送入以图生图">🖼️ 以此图重绘</button>
+          <button class="btn-ghost" id="lightbox-btn-to-video" title="以此图作为首帧送入图生视频">🎬 转为视频首帧</button>
+        </div>
+        <div class="lightbox-actions-group">
+          <button class="btn-ghost" id="lightbox-btn-to-stage" style="color:var(--accent)" title="将此产物置入主展示台">🎯 载入主舞台</button>
+          <button class="btn-ghost" id="lightbox-btn-del" style="color:var(--danger)" title="从磁盘彻底删除此产物">🗑️ 删除</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2873,7 +3282,7 @@ function renderGalleryItems() {
     const it = filtered[+el.dataset.idx];
     el.onclick = (e) => {
       if (e.target.closest(".gallery-del-btn")) return;
-      loadGalleryItemToStage(it);
+      openLightbox(+el.dataset.idx);
     };
     el.ondragstart = (e) => {
       e.dataTransfer.setData("application/json", JSON.stringify({ source: "ours", name: it.file, subfolder: "" }));
@@ -2900,6 +3309,16 @@ async function deleteGalleryFile(file) {
     });
     galleryData = galleryData.filter(x => x.file !== file);
     renderGalleryItems();
+
+    if ($("gallery-lightbox-modal").classList.contains("open")) {
+      const list = getFilteredGallery();
+      if (!list.length) {
+        closeLightbox();
+      } else {
+        if (currentLightboxIdx >= list.length) currentLightboxIdx = list.length - 1;
+        renderLightboxItem();
+      }
+    }
 
     if (currentHeroJob) {
       const curFile = currentHeroJob.image?.file || currentHeroJob.video?.file;
@@ -2934,6 +3353,259 @@ function loadGalleryItemToStage(item) {
   renderHeroStage(fakeJob);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+// ---------- 画廊全屏大图灯箱 (Lightbox) 驱动逻辑 ----------
+let currentLightboxIdx = -1;
+let isLightboxZoomed = false;
+
+function getFilteredGallery() {
+  return galleryData.filter(item => {
+    if (currentGalleryFilter === "image") return item.type === "image";
+    if (currentGalleryFilter === "video") return item.type === "video";
+    return true;
+  });
+}
+
+function getCurrentLightboxItem() {
+  const list = getFilteredGallery();
+  if (currentLightboxIdx < 0 || currentLightboxIdx >= list.length) return null;
+  return list[currentLightboxIdx];
+}
+
+function openLightbox(idx) {
+  const list = getFilteredGallery();
+  if (!list.length) return;
+  currentLightboxIdx = Math.max(0, Math.min(idx, list.length - 1));
+  setLightboxZoom(false);
+  $("gallery-lightbox-modal").classList.add("open");
+  document.body.style.overflow = "hidden";
+  renderLightboxItem();
+}
+
+function closeLightbox() {
+  $("gallery-lightbox-modal").classList.remove("open");
+  document.body.style.overflow = "";
+  setLightboxZoom(false);
+  const vid = $("lightbox-media-wrap").querySelector("video");
+  if (vid) vid.pause();
+}
+
+function setLightboxZoom(zoomed) {
+  isLightboxZoomed = zoomed;
+  const wrap = $("lightbox-media-wrap");
+  const btn = $("lightbox-btn-zoom");
+  if (isLightboxZoomed) {
+    wrap.classList.add("zoomed");
+    btn.textContent = "🔍 适应屏幕";
+    btn.classList.add("active");
+  } else {
+    wrap.classList.remove("zoomed");
+    btn.textContent = "🔍 1:1 细节";
+    btn.classList.remove("active");
+    wrap.scrollTop = 0;
+    wrap.scrollLeft = 0;
+  }
+}
+
+function navigateLightbox(dir) {
+  const list = getFilteredGallery();
+  if (!list.length) return;
+  currentLightboxIdx = (currentLightboxIdx + dir + list.length) % list.length;
+  setLightboxZoom(false);
+  renderLightboxItem();
+}
+
+function renderLightboxItem() {
+  const list = getFilteredGallery();
+  const item = getCurrentLightboxItem();
+  if (!item) {
+    closeLightbox();
+    return;
+  }
+
+  $("lightbox-counter").textContent = `${currentLightboxIdx + 1} / ${list.length}`;
+
+  const isVideo = item.type === "video";
+  const fileUrl = item.url || `/outputs/${item.file}`;
+
+  $("lightbox-badge-type").textContent = isVideo ? "🎬 视频" : "🎨 图片";
+  $("lightbox-badge-type").className = `meta-pill ${isVideo ? "" : "highlight"}`;
+
+  const w = item.params?.width;
+  const h = item.params?.height;
+  $("lightbox-badge-dim").textContent = (w && h) ? `${w} × ${h}` : (item.size ? `${(item.size / 1024 / 1024).toFixed(1)} MB` : "HD");
+
+  const seed = (item.seed !== undefined && item.seed !== null && item.seed !== 0) ? item.seed : (item.params?.seed || "—");
+  $("lightbox-badge-seed").textContent = `种子: ${seed}`;
+
+  if (isVideo) {
+    $("lightbox-btn-zoom").style.display = "none";
+    $("lightbox-btn-to-i2i").style.display = "none";
+    $("lightbox-btn-to-video").style.display = "none";
+    $("lightbox-media-wrap").innerHTML = `
+      <video src="${fileUrl}" controls autoplay loop playsinline></video>
+    `;
+  } else {
+    $("lightbox-btn-zoom").style.display = "inline-flex";
+    $("lightbox-btn-to-i2i").style.display = "inline-flex";
+    $("lightbox-btn-to-video").style.display = "inline-flex";
+    $("lightbox-media-wrap").innerHTML = `
+      <img src="${fileUrl}" alt="${esc(item.file)}" id="lightbox-img-el" class="can-zoom" />
+    `;
+    const imgEl = $("lightbox-img-el");
+    if (imgEl) {
+      imgEl.onclick = () => {
+        setLightboxZoom(!isLightboxZoomed);
+      };
+    }
+  }
+
+  const rawClean = !isFilename(item.prompt_raw) ? item.prompt_raw : (!isFilename(item.prompt_en) ? item.prompt_en : "");
+  const enClean = !isFilename(item.prompt_en) ? item.prompt_en : (!isFilename(item.prompt_raw) ? item.prompt_raw : "");
+  $("lightbox-prompt-box").innerHTML = `
+    <div style="font-size:.72rem;color:var(--accent);margin-bottom:.2rem">【原始需求】: ${esc(rawClean || "（画廊产物未记录原始中文）")}</div>
+    <div style="font-size:.75rem;color:#e2e8f0">【模型提示词】: ${esc(enClean || "（画廊产物未记录英文提示词）")}</div>
+  `;
+
+  $("lightbox-btn-download").href = fileUrl;
+  $("lightbox-btn-download").download = item.file;
+}
+
+// 导航按钮
+$("lightbox-btn-prev").onclick = (e) => { e.stopPropagation(); navigateLightbox(-1); };
+$("lightbox-btn-next").onclick = (e) => { e.stopPropagation(); navigateLightbox(1); };
+$("lightbox-btn-close").onclick = (e) => { e.stopPropagation(); closeLightbox(); };
+$("lightbox-btn-zoom").onclick = (e) => { e.stopPropagation(); setLightboxZoom(!isLightboxZoomed); };
+
+// 点击遮罩空白区域关闭
+$("gallery-lightbox-modal").onclick = (e) => {
+  if (e.target === $("gallery-lightbox-modal") || e.target === $("lightbox-media-wrap")) {
+    if (isLightboxZoomed) {
+      setLightboxZoom(false);
+    } else {
+      closeLightbox();
+    }
+  }
+};
+
+// 鼠标滚轮上下滚动切换图片 (在 1:1 放大状态下则允许正常滚动查看局部)
+let lightboxWheelTimer = null;
+$("gallery-lightbox-modal").addEventListener("wheel", (e) => {
+  if (isLightboxZoomed) {
+    return;
+  }
+  e.preventDefault();
+  if (lightboxWheelTimer) return;
+  if (Math.abs(e.deltaY) < 12) return;
+
+  lightboxWheelTimer = setTimeout(() => { lightboxWheelTimer = null; }, 180);
+  if (e.deltaY > 0) {
+    navigateLightbox(1); // 滚轮向下滚动 -> 下一张
+  } else {
+    navigateLightbox(-1); // 滚轮向上滚动 -> 上一张
+  }
+}, { passive: false });
+
+// 触摸滑动手势支持 (移动端/触摸板)
+let touchStartY = 0;
+let touchStartX = 0;
+$("gallery-lightbox-modal").addEventListener("touchstart", (e) => {
+  if (e.touches.length === 1) {
+    touchStartY = e.touches[0].clientY;
+    touchStartX = e.touches[0].clientX;
+  }
+}, { passive: true });
+
+$("gallery-lightbox-modal").addEventListener("touchend", (e) => {
+  if (isLightboxZoomed) return;
+  if (e.changedTouches.length === 1) {
+    const diffY = e.changedTouches[0].clientY - touchStartY;
+    const diffX = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(diffY) > 50 && Math.abs(diffY) > Math.abs(diffX)) {
+      if (diffY < 0) navigateLightbox(1);
+      else navigateLightbox(-1);
+    } else if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX < 0) navigateLightbox(1);
+      else navigateLightbox(-1);
+    }
+  }
+}, { passive: true });
+
+// 快捷键支持
+document.addEventListener("keydown", (e) => {
+  const modal = $("gallery-lightbox-modal");
+  if (!modal || !modal.classList.contains("open")) return;
+
+  if (e.key === "Escape") {
+    e.preventDefault();
+    if (isLightboxZoomed) {
+      setLightboxZoom(false);
+    } else {
+      closeLightbox();
+    }
+  } else if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === "PageDown" || (e.key === " " && !isLightboxZoomed)) {
+    e.preventDefault();
+    navigateLightbox(1);
+  } else if (e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "PageUp") {
+    e.preventDefault();
+    navigateLightbox(-1);
+  }
+});
+
+// 灯箱动作栏绑定
+$("lightbox-btn-copy-prompt").onclick = async () => {
+  const item = getCurrentLightboxItem();
+  if (!item) return;
+  const text = item.prompt_raw || item.prompt_en || "";
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = $("lightbox-btn-copy-prompt");
+    const old = btn.textContent;
+    btn.textContent = "✅ 已复制提示词";
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  } catch (err) {
+    prompt("按 Ctrl+C 复制提示词:", text);
+  }
+};
+
+$("lightbox-btn-reuse").onclick = () => {
+  const item = getCurrentLightboxItem();
+  if (!item) return;
+  loadGalleryItemToStage(item);
+  $("hero-reuse-btn").click();
+  closeLightbox();
+};
+
+$("lightbox-btn-to-i2i").onclick = () => {
+  const item = getCurrentLightboxItem();
+  if (!item || item.type === "video") return;
+  loadGalleryItemToStage(item);
+  $("hero-to-i2i-btn").click();
+  closeLightbox();
+};
+
+$("lightbox-btn-to-video").onclick = () => {
+  const item = getCurrentLightboxItem();
+  if (!item || item.type === "video") return;
+  loadGalleryItemToStage(item);
+  $("hero-to-video-btn").click();
+  closeLightbox();
+};
+
+$("lightbox-btn-to-stage").onclick = () => {
+  const item = getCurrentLightboxItem();
+  if (!item) return;
+  loadGalleryItemToStage(item);
+  closeLightbox();
+};
+
+$("lightbox-btn-del").onclick = async () => {
+  const item = getCurrentLightboxItem();
+  if (!item) return;
+  if (!confirm(`确定要从磁盘彻底删除产物「${item.file}」吗？\n删除后不可恢复。`)) return;
+  await deleteGalleryFile(item.file);
+};
 
 // 日志折叠
 $("logs-header").onclick = () => {
@@ -3404,6 +4076,268 @@ const ANIME_INSPIRATIONS = [
   "清晨森林薄雾与阳光晨曦，周围环绕着发光的自然灵蝶",
 ];
 
+// 4. 精选具体二创场景库 (服装 / 动作 / 剧情 / 心境)
+const ANIME_SCENARIOS = [
+  // 现代都市与私服漫步 (daily)
+  {
+    id: "daily_winter_coffee",
+    cat: "daily",
+    title: "☕ 冬日暖阳街角",
+    desc: "厚实毛衣与大衣，在街角咖啡店木椅捧着热拿铁微笑",
+    text: "穿着厚实的米白色毛衣和驼色大衣，围着红色格纹围巾，在街角露天咖啡店户外木椅上双手捧着热拿铁，嘴角含笑看向镜头，背景是金黄银杏落叶与复古街灯"
+  },
+  {
+    id: "daily_rainy_neon",
+    cat: "daily",
+    title: "🌧️ 雨夜霓虹便利店",
+    desc: "黑色机能连帽衫，撑着透明雨伞，雨滴滑落与霓虹倒影",
+    text: "穿着oversized黑色机能连帽衫与工装裤，在东京雨夜的便利店玻璃橱窗前，撑着透明雨伞，雨滴在伞面滑落，霓虹灯倒映在潮湿积水地面，神情清冷孤傲"
+  },
+  {
+    id: "daily_sunset_bridge",
+    cat: "daily",
+    title: "🌆 傍晚天桥晚风",
+    desc: "简约秋季风衣插兜，倚靠过街天桥栏杆，晚霞与微风",
+    text: "身穿简约优雅的秋季风衣，双手插兜倚靠在城市过街天桥的栏杆上，晚霞将城市楼宇染成紫红色，微风轻拂发丝，眼神若有所思"
+  },
+  {
+    id: "daily_library_book",
+    cat: "daily",
+    title: "📚 温暖书店探寻",
+    desc: "格纹衬衫与针织背心，金丝眼镜，在木质书架前专心取书",
+    text: "身着复古格纹衬衫与针织背心，戴着圆框金丝眼镜，站在温暖木质书架前微微踮脚取下一本厚重古籍，神情专注认真"
+  },
+  {
+    id: "daily_cafe_work",
+    cat: "daily",
+    title: "🍰 假日咖啡馆日常",
+    desc: "白衬衫浅棕围裙，扎马尾端托盘，穿行在绿植咖啡厅",
+    text: "身穿干净的白衬衫与浅棕色围裙，绑着利落的高马尾，双手端着拉花精致的咖啡托盘，微笑着穿行在洒满阳光的绿植咖啡厅内"
+  },
+
+  // 青春校园与黄昏漫步 (school)
+  {
+    id: "school_sunset_classroom",
+    cat: "school",
+    title: "🌇 黄昏放学教室",
+    desc: "日系水手服百褶裙，独自在窗边课桌单手托腮望向窗外",
+    text: "穿着整洁的日系水手服与百褶裙，独自坐在黄昏放学的窗边课桌前，橙红色的夕阳斜斜洒在课本与脸颊上，单手托腮望向窗外发呆"
+  },
+  {
+    id: "school_cherry_path",
+    cat: "school",
+    title: "🌸 樱花季林荫道",
+    desc: "深蓝西装校服短裙，怀抱画夹，漫步在随风飘落的樱花下",
+    text: "身穿深蓝色西装校服短裙配黑色长袜，在春日盛开的樱花树下漫步，怀中抱着厚厚的画夹，粉色花瓣随风飞舞落在发梢，回头露出甜美治愈的微笑"
+  },
+  {
+    id: "school_rooftop_breeze",
+    cat: "school",
+    title: "☁️ 校园天台微风",
+    desc: "夏日短袖校服衬衫微解领扣，站在天台铁丝网前迎着蓝天",
+    text: "身着夏日短袖校服衬衫微解领扣，站在学校天台铁丝网前，蔚蓝辽阔的晴空与大团白云，风吹乱裙角与长发，手扶着栏杆俯瞰校园"
+  },
+  {
+    id: "school_gym_drink",
+    cat: "school",
+    title: "🥤 雨后体育馆回廊",
+    desc: "运动外套坐在长椅，冰镇汽水贴在微红脸颊，清澈眼神",
+    text: "穿着学校运动服外套，坐在体育馆木质走廊的长椅上，手拿一罐冰镇汽水贴在微红的脸颊上，细小的汗珠在锁骨闪烁，眼神清澈而充满朝气"
+  },
+  {
+    id: "school_graduation_steps",
+    cat: "school",
+    title: "🎓 毕业礼石阶希冀",
+    desc: "学士制服向日葵花束，向天空抛出纸飞机，不舍与期待",
+    text: "身穿学士制服配黑丝长筒袜，怀抱向日葵花束，站在长长的校园石阶上，向天空抛出纸飞机，眼中闪烁着对未来的希冀与淡淡不舍"
+  },
+
+  // 海滨夏日与假日漫步 (holiday)
+  {
+    id: "holiday_sunset_beach",
+    cat: "holiday",
+    title: "🏖️ 夏日落日沙滩",
+    desc: "白色轻纱吊带连衣裙，赤足提凉鞋漫步在浪花边缘",
+    text: "身穿飘逸的白色轻纱吊带连衣裙，赤着双足提着凉鞋漫步在浪花边缘，落日将大海染成金红色，海风吹起裙摆与长发，神情温柔惬意"
+  },
+  {
+    id: "holiday_train_station",
+    cat: "holiday",
+    title: "🚃 海边电车站台",
+    desc: "蓝白条纹露肩衫与草帽，站在面朝大海的无边电车站台",
+    text: "身穿蓝白条纹露肩防晒衫与牛仔短裤，头戴宽檐草帽，站在面朝大海的无边电车站台边，身后是碧蓝如洗的无际晴空与夏日积雨云"
+  },
+  {
+    id: "holiday_poolside_drink",
+    cat: "holiday",
+    title: "🍹 泳池畔夏日冷饮",
+    desc: "清凉比基尼与薄开衫，手握薄荷柠檬冷饮，水面波光粼粼",
+    text: "穿着清凉时尚的泳衣与轻薄防晒开衫，坐在湛蓝露天泳池畔的躺椅上，手握装有薄荷柠檬片的冷饮杯，阳光在水面波光粼粼"
+  },
+  {
+    id: "holiday_seawall_twilight",
+    cat: "holiday",
+    title: "🎆 烟火大会前夕海堤",
+    desc: "浅色浴衣提小布袋，坐在防波堤晃荡脚踝吹晚风",
+    text: "身着浅色花卉浴衣手提小布袋，坐在海堤防波堤上吹着晚风，脚踝轻轻晃荡，远处夕阳沉入海平线，静静等待夏日夜空花火升起"
+  },
+  {
+    id: "holiday_lighthouse_view",
+    cat: "holiday",
+    title: "⚓ 码头灯塔远眺",
+    desc: "海军领连衣裙，扶白色灯塔栏杆，海鸥盘旋与薄雾海风",
+    text: "身穿航海风海军领连衣裙，迎着清晨泛起薄雾的海风，手扶着白色灯塔栏杆眺望远方驶来的轮船，海鸥盘旋在头顶"
+  },
+
+  // 宅家惬意与日常心绪 (home)
+  {
+    id: "home_lazy_gamer",
+    cat: "home",
+    title: "🎮 慵懒周末游戏时光",
+    desc: "宽松大号连帽衫抱膝打游戏，地毯零食与抱枕",
+    text: "居家慵懒周末，穿着宽松大号连帽衫与及膝棉袜，抱膝坐在柔软的地毯上，手握游戏手柄专心打游戏，身旁散落着零食与抱枕"
+  },
+  {
+    id: "home_rainy_bay_window",
+    cat: "home",
+    title: "📖 雨天飘窗读诗",
+    desc: "灰粉针织毛衣蜷缩飘窗，膝上诗集与窗外雨珠",
+    text: "穿着柔软宽松的灰粉色针织毛衣，抱膝蜷缩在窗台飘窗软垫上，膝上放着一本翻开的诗集，玻璃窗外挂满雨珠，眼神安静而朦胧"
+  },
+  {
+    id: "home_morning_kitchen",
+    cat: "home",
+    title: "🍳 晨光厨房初醒",
+    desc: "大号条纹衬衫松散挽发，赤脚在厨房煎蛋，晨光初醒",
+    text: "穿着宽松男友风大号条纹衬衫微露单肩，长发松散挽起，光着脚踩在木地板上，在晨光熹微的厨房煎锅前煎鸡蛋，嘴角带着初醒的慵懒微笑"
+  },
+  {
+    id: "home_midnight_phone",
+    cat: "home",
+    title: "🌙 深夜被窝手机幽光",
+    desc: "毛茸卡通睡衣趴羽绒被，手机柔光映照清亮双眸与偷笑",
+    text: "趴在蓬松柔软的羽绒被里，裹着毛茸茸的卡通睡衣，下巴垫在枕头上，手机屏幕的柔和微光映照着清亮纯净的双眸，嘴角挂着偷笑"
+  },
+  {
+    id: "home_art_studio",
+    cat: "home",
+    title: "🎨 画室画布沉思",
+    desc: "水彩围裙赤脚长裤，画笔轻抵下巴，对半成品画布凝神",
+    text: "穿着沾有点点水彩颜料的白色围裙与宽松长裤，赤脚踩在画室地板上，右手握着画笔轻抵下巴，对着画架上的半成品画布陷入沉思"
+  },
+
+  // 和风古韵与传统节庆 (traditional)
+  {
+    id: "trad_matsuri_fireworks",
+    cat: "traditional",
+    title: "🎆 夏日祭典花火",
+    desc: "金鱼浴衣金鱼水球与苹果糖，漫天炸裂花火下回眸微笑",
+    text: "身穿印有华美金鱼与紫阳花图案的传统和服浴衣，腰系朱红宽腰带，手提金鱼水球与苹果糖，在漫天炸裂的璀璨花火下回眸微笑"
+  },
+  {
+    id: "trad_shrine_maple",
+    cat: "traditional",
+    title: "🍁 枫叶古寺红叶雨",
+    desc: "典雅红白巫女服或振袖和服，站在京都回廊，漫天红叶如雨",
+    text: "身着典雅华丽的红白巫女服，站在红叶漫天的京都神社木质回廊上，枫叶如雨般飘落，神情庄重而空灵"
+  },
+  {
+    id: "trad_courtyard_tea",
+    cat: "traditional",
+    title: "🍵 庭院廊下品茗",
+    desc: "素雅浅青汉服和服，榻榻米长廊轻捧青瓷茶盏，锦鲤池塘",
+    text: "穿着素雅的浅青色传统服饰，端坐在铺着榻榻米的庭院木质长廊边，手中轻捧青瓷茶盏，面前是水波荡漾的锦鲤池塘与假山竹林"
+  },
+  {
+    id: "trad_lantern_festival",
+    cat: "traditional",
+    title: "🏮 灯火阑珊元宵上元",
+    desc: "银线云纹汉服大袖襦裙，手提发光兔子花灯，千树琉璃灯火",
+    text: "身着绣有银线云纹的华美汉服大袖襦裙，手提一盏精致发光的兔子花灯，伫立在古风街市千树琉璃灯火之中，回眸顾盼生姿"
+  },
+  {
+    id: "trad_shrine_prayer",
+    cat: "traditional",
+    title: "⛩️ 晨雾鸟居虔诚祈愿",
+    desc: "双手合十在绘马架前祈福，山间晨雾缭绕，朱红鸟居隐现",
+    text: "双手合十闭上双眼在神社绘马架前虔诚祈福，清晨山间薄雾缭绕，朱红色鸟居在雾气中若隐若现，发丝上挂着晶莹露珠"
+  },
+
+  // 奇幻史诗与战斗高光 (epic)
+  {
+    id: "epic_ruin_throne",
+    cat: "epic",
+    title: "👑 废墟王座觉醒",
+    desc: "银黑战甲残破披风，握幽蓝断剑端坐巨石王座，冰冷孤傲",
+    text: "身披破碎但华丽的银黑战甲与残破披风，单手握着散发幽蓝光芒的断剑，端坐在被战争摧毁的巨石王座之上，眼神冰冷孤傲俯瞰战场"
+  },
+  {
+    id: "epic_forbidden_spell",
+    cat: "epic",
+    title: "✨ 禁断魔法阵吟唱",
+    desc: "狂暴夜空漩涡中央，层层金色符文与魔法阵，法杖能量柱",
+    text: "漂浮在狂暴夜空漩涡中央，周身环绕着层层旋转的金色卢恩符文与耀眼魔法阵，法杖顶端爆发毁灭性的能量光柱，长发肆意飞舞"
+  },
+  {
+    id: "epic_wasteland_guns",
+    cat: "epic",
+    title: "💥 废土双枪突围",
+    desc: "战术机能紧身战斗服，双持冒烟重型手枪滑铲避弹，眼神决绝",
+    text: "身穿战术机能紧身战斗服与皮质防弹背心，双手持冒着硝烟的重型手枪，在火光冲天的机械残骸废墟中疾速滑铲避开弹雨，眼神锐利决绝"
+  },
+  {
+    id: "epic_dragon_cliff",
+    cat: "epic",
+    title: "🐉 龙之谷破晓之誓",
+    desc: "龙鳞轻甲万丈悬崖边缘，破晓金光，庞大威严巨龙相伴",
+    text: "身穿精致龙鳞轻甲，迎着初升破晓的第一缕金光，站在万丈悬崖边缘，身侧庞大威严的巨龙俯首相伴，巨翼遮天蔽日"
+  },
+  {
+    id: "epic_dimension_slash",
+    cat: "epic",
+    title: "⚔️ 结界碎裂次元斩击",
+    desc: "利落刺客劲装超高速拔刀，结界如玻璃碎裂，绚烂流光轨迹",
+    text: "身着利落刺客劲装，以超高速拔刀斩断眼前泛着紫光的次元结界，空间如玻璃般碎裂飞溅，刀刃划破长空留下一道绚烂的流光轨迹"
+  },
+
+  // 梦幻星空与浪漫夜色 (dream)
+  {
+    id: "dream_galaxy_float",
+    cat: "dream",
+    title: "🌌 银河星海漫游",
+    desc: "半透明星光薄纱长裙，漂浮浩瀚星云之间，群星与发光水母",
+    text: "身穿半透明的梦幻星光薄纱长裙，漂浮在浩瀚无垠的璀璨银河与星云之间，四周环绕着发光的群星与轻盈水母，眼眸倒映着整片宇宙"
+  },
+  {
+    id: "dream_water_mirror",
+    cat: "dream",
+    title: "🌕 水中月影倒悬",
+    desc: "天空之镜平静水面，悬挂梦幻满月，脚下水波反射星辉",
+    text: "身处宛如天空之镜的平静水面中央，夜晚夜空中悬挂着巨大梦幻的满月，脚下水波荡漾反射着月色与星辉，裙摆如花瓣在水中散开"
+  },
+  {
+    id: "dream_biolum_forest",
+    cat: "dream",
+    title: "✨ 萤火菌菇秘境",
+    desc: "薄荷绿轻纱裙漫步巨型发光菌菇森林，万千萤火虫环绕仙境",
+    text: "穿着森系薄荷绿轻纱裙，漫步在生长着巨大发光菌菇的梦幻原始森林中，成千上万只浅绿色发光萤火虫环绕周身，犹如身处童话仙境"
+  },
+  {
+    id: "dream_crystal_hall",
+    cat: "dream",
+    title: "💎 水晶镜厅独舞",
+    desc: "流光溢彩水晶芭蕾舞裙，古典镜厅大理石地面轻盈旋转起舞",
+    text: "身着流光溢彩的水晶芭蕾舞裙，在月光洒落的欧式古典镜厅大理石地面上轻盈旋转起舞，脚尖点地激起淡淡的光斑涟漪"
+  },
+  {
+    id: "dream_sky_whale",
+    cat: "dream",
+    title: "🐋 云海之巅鲸歌",
+    desc: "坐在发光云鲸脊背翱翔粉紫晚霞云海，手提发光灯笼长发飞扬",
+    text: "坐在巨大如岛屿般的发光云鲸脊背上，翱翔在粉紫色晚霞与翻滚的云海之上，手里拿着发光的提灯，长发与丝带在天风中飞舞"
+  }
+];
+
 const ANIME_QUALITY_POS = "masterpiece, best quality, newest, absurdres, highres";
 const ANIME_DEFAULT_NEG = "text, watermark, worst quality, old, early, low quality, lowres, signature, username, logo, bad hands, mutated hands, mammal, anthro, furry, ambiguous form, feral, semi-anthro";
 
@@ -3463,9 +4397,14 @@ function renderAnimeCharacters(filter = "all", keyword = "") {
 
   container.innerHTML = list.map(c => {
     const isSel = selectedAnimeChar && selectedAnimeChar.id === c.id;
+    const avatarUrl = `/assets/avatars/${c.id}.jpg`;
     return `
       <div class="char-card ${isSel ? 'selected' : ''}" data-id="${c.id}" title="${esc(c.desc)}&#10;${esc(c.tags)}">
-        <div class="char-avatar" style="background:${c.color}">${c.avatar}</div>
+        <div class="char-avatar" style="background:${c.color}">
+          <img class="char-thumb-img" src="${avatarUrl}" alt="${esc(c.name)}" loading="lazy"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+          <span class="char-avatar-fallback">${c.avatar}</span>
+        </div>
         <div class="char-name">${esc(c.name)}</div>
         <div class="char-franchise">${esc(c.franchise)}</div>
       </div>
@@ -3747,12 +4686,148 @@ $("anime-lora-strength").oninput = () => {
   $("anime-lora-strength-val").textContent = (+ $("anime-lora-strength").value).toFixed(2);
 };
 
+// 场景库下拉选择初始化
+function initAnimeScenarios() {
+  const catSelect = $("anime-scenario-cat");
+  const sceneSelect = $("anime-scenario-select");
+  if (!catSelect || !sceneSelect) return;
+
+  function populateScenarios(cat = "all") {
+    const filtered = cat === "all" ? ANIME_SCENARIOS : ANIME_SCENARIOS.filter(s => s.cat === cat);
+    sceneSelect.innerHTML = `<option value="">-- 点击选择精选场景 (${filtered.length}款) --</option>` +
+      filtered.map(s => `<option value="${s.id}">${s.title} · ${esc(s.desc)}</option>`).join("");
+  }
+
+  catSelect.onchange = () => {
+    populateScenarios(catSelect.value);
+  };
+
+  sceneSelect.onchange = () => {
+    const id = sceneSelect.value;
+    if (!id) return;
+    const item = ANIME_SCENARIOS.find(s => s.id === id);
+    if (!item) return;
+
+    $("anime-prompt-zh").value = item.text;
+    showToast(`已应用场景：${item.title}`);
+  };
+
+  populateScenarios("all");
+}
+
+// Checkpoint 底模指南折叠卡片
+function initAnimeCkptGuide() {
+  const toggle = $("anime-ckpt-guide-toggle");
+  const content = $("anime-ckpt-guide-content");
+  const arrow = $("anime-ckpt-guide-arrow");
+  if (!toggle || !content) return;
+
+  toggle.onclick = () => {
+    const isHidden = content.hidden;
+    content.hidden = !isHidden;
+    if (arrow) arrow.textContent = isHidden ? "收起说明 ▲" : "展开解析 ▼";
+  };
+}
+
+let selectedAnimeLora = null;
+
+// 渲染 LoRA 视觉卡片网格
+function renderAnimeLoraCards(loraDetails) {
+  const container = $("anime-lora-grid");
+  const countEl = $("anime-lora-count");
+  if (!container) return;
+
+  if (!loraDetails || !loraDetails.length) {
+    container.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:1.5rem;color:var(--fg-muted);font-size:.78rem">
+        未检测到本地 LoRA 模型。<br>请将 <code>.safetensors</code> 放入 <code>ComfyUI/models/loras/</code> 目录。
+      </div>
+    `;
+    if (countEl) countEl.textContent = "未安装 LoRA";
+    $("anime-lora-hint").innerHTML = `💡 检测到本地暂无 LoRA 文件。可直接使用「Danbooru 角色库」免 LoRA 模式。`;
+    return;
+  }
+
+  if (countEl) countEl.textContent = `已检测到 ${loraDetails.length} 个模型`;
+  $("anime-lora-hint").innerHTML = `✅ 已从本地检测到 <b>${loraDetails.length}</b> 个 LoRA 模型，点击下方卡片即可快速选用。`;
+
+  container.innerHTML = loraDetails.map(item => {
+    const isSel = selectedAnimeLora === item.name;
+    const baseName = item.name.replace(/\.[^/.]+$/, "");
+    const previewHtml = item.preview
+      ? `<img src="${item.preview}" alt="${esc(item.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span style=\\'font-size:2rem;color:#f472b6\\'>🧩</span>';" />`
+      : `<span style="font-size:2rem;color:#f472b6">🧩</span>`;
+
+    const lightningBadge = item.is_lightning
+      ? `<span class="lora-card-badge" style="background:rgba(234,179,8,0.85);color:#000;font-weight:700">⚡ 4步极速</span>`
+      : `<span class="lora-card-badge">${item.size_mb} MB</span>`;
+
+    return `
+      <div class="lora-card ${isSel ? 'active' : ''}" data-name="${esc(item.name)}" title="${esc(item.name)} (${item.size_mb} MB)">
+        <div class="lora-card-preview">
+          ${previewHtml}
+          ${lightningBadge}
+        </div>
+        <div class="lora-card-title">${esc(baseName)}</div>
+        <div class="lora-card-meta">
+          <span>${item.is_lightning ? 'Lightning' : '二次元LoRA'}</span>
+          <span style="color:#f472b6;font-weight:600">${isSel ? '已选用' : '点击选用'}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  container.querySelectorAll(".lora-card").forEach(card => {
+    card.onclick = () => {
+      const name = card.dataset.name;
+      if (selectedAnimeLora === name) {
+        selectedAnimeLora = null;
+        $("anime-lora-select").value = "";
+        showToast("已取消选用 LoRA", "warn");
+      } else {
+        selectedAnimeLora = name;
+        $("anime-lora-select").value = name;
+
+        // 针对不同 LoRA 智能配置最佳权重与触发词
+        const nameLower = name.toLowerCase();
+        if (nameLower.includes("frieren")) {
+          $("anime-lora-strength").value = 0.85;
+          $("anime-lora-strength-val").textContent = "0.85";
+          if (!$("anime-lora-trigger").value.trim()) {
+            $("anime-lora-trigger").value = "frieren, elf, white hair, twintails";
+          }
+          showToast(`已选用芙莉莲 LoRA，推荐权重 0.85`);
+        } else if (nameLower.includes("style") || nameLower.includes("enhancer")) {
+          $("anime-lora-strength").value = 0.60;
+          $("anime-lora-strength-val").textContent = "0.60";
+          showToast(`已选用风格增强 LoRA，推荐权重 0.60`);
+        } else if (nameLower.includes("lightning")) {
+          $("anime-lora-strength").value = 1.0;
+          $("anime-lora-strength-val").textContent = "1.00";
+          showToast(`已选用 4 步极速 Lightning LoRA`);
+        } else {
+          showToast(`已选用 LoRA：${name}`);
+        }
+      }
+
+      // 同步卡片高亮样式
+      container.querySelectorAll(".lora-card").forEach(c => {
+        const isMatch = c.dataset.name === selectedAnimeLora;
+        c.classList.toggle("active", isMatch);
+        const metaSpan = c.querySelector(".lora-card-meta span:last-child");
+        if (metaSpan) metaSpan.textContent = isMatch ? "已选用" : "点击选用";
+      });
+    };
+  });
+}
+
 // 动态获取本地 Checkpoints 和 LoRAs
 async function loadLocalModels() {
   try {
     const res = await api("/api/models");
     const ckpts = res.checkpoints || [];
     const loras = res.loras || [];
+    const loraDetails = res.lora_details || [];
     const current = res.current_checkpoint || "";
 
     const ckptSelect = $("anime-checkpoint-select");
@@ -3771,11 +4846,12 @@ async function loadLocalModels() {
     if (loras.length) {
       loraSelect.innerHTML = `<option value="">-- 请选择 LoRA 模型 --</option>` +
         loras.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("");
-      $("anime-lora-hint").innerHTML = `✅ 已从本地检测到 <b>${loras.length}</b> 个 LoRA 模型，可随时选用。`;
     } else {
       loraSelect.innerHTML = `<option value="">(本地 models/loras 目录下暂无模型)</option>`;
-      $("anime-lora-hint").innerHTML = `💡 检测到本地暂无 LoRA 文件。可直接使用「Danbooru 角色库」免 LoRA 模式，或将 <code>.safetensors</code> 放入 <code>${esc(res.loras_dir || 'models/loras/')}</code> 目录刷新选用。`;
     }
+
+    // 渲染 LoRA 视觉卡片网格
+    renderAnimeLoraCards(loraDetails);
   } catch (err) {
     console.warn("加载本地模型失败:", err);
   }
@@ -3785,6 +4861,8 @@ async function loadLocalModels() {
 renderAnimeCharacters();
 renderAnimeStyles();
 renderAnimeInspirations();
+initAnimeScenarios();
+initAnimeCkptGuide();
 updateAnimeNegativePrompt();
 loadLocalModels();
 
