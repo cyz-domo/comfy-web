@@ -7,6 +7,7 @@
 import json
 import mimetypes
 import os
+import queue
 import re
 import subprocess
 import sys
@@ -39,10 +40,40 @@ for _fn in os.listdir(OUTPUT_DIR):
             pass
 
 
+def resolve_comfy_dir(raw_dir=None):
+    """支持相对路径与自动探测，将 comfy_dir 转换为存在的绝对路径。"""
+    # 1. 优先使用环境变量 COMFY_DIR
+    env_dir = os.environ.get("COMFY_DIR", "").strip()
+    if env_dir and os.path.isdir(env_dir):
+        return os.path.abspath(env_dir)
+
+    # 2. 如果提供了配置值（支持绝对路径或以项目根目录为基准的相对路径）
+    if raw_dir and str(raw_dir).strip():
+        val = str(raw_dir).strip().replace("\\", "/")
+        target = val if os.path.isabs(val) else os.path.abspath(os.path.join(HERE, val))
+        if os.path.isdir(target):
+            return target
+
+    # 3. 常见目录结构自动嗅探 (便携规范平级 ../ComfyUI, 子级 ./ComfyUI, 驱动器根目录等)
+    candidates = [
+        os.path.abspath(os.path.join(HERE, "..", "ComfyUI")),
+        os.path.abspath(os.path.join(HERE, "ComfyUI")),
+        "E:/ComfyUI",
+        "D:/ComfyUI",
+        "C:/ComfyUI",
+    ]
+    for c in candidates:
+        if os.path.isdir(c):
+            return os.path.abspath(c)
+
+    # 兜底返回推荐的标准平级相对路径绝对化结果
+    return os.path.abspath(os.path.join(HERE, "..", "ComfyUI"))
+
+
 def load_config():
     cfg = {
         "comfy_url": "http://127.0.0.1:8188",
-        "comfy_dir": "E:/ComfyUI",
+        "comfy_dir": "../ComfyUI",
         "image_checkpoint": "sd_xl_base_1.0.safetensors",
         "video_checkpoint": "ltx-video-2b-v0.9.5.safetensors",
         "video_text_encoder": "t5xxl_fp8_e4m3fn_scaled.safetensors",
@@ -60,7 +91,7 @@ def load_config():
         except Exception as e:
             print(f"[WARN] 读取 config.json 失败: {e}")
     cfg["comfy_url"] = os.environ.get("COMFY_URL", cfg["comfy_url"]).rstrip("/")
-    cfg["comfy_dir"] = os.environ.get("COMFY_DIR", cfg["comfy_dir"])
+    cfg["comfy_dir"] = resolve_comfy_dir(cfg.get("comfy_dir"))
     llm = cfg["llm"]
     llm["base_url"] = os.environ.get("LLM_BASE_URL", llm.get("base_url", "")).rstrip("/")
     llm["api_key"] = os.environ.get("LLM_API_KEY", llm.get("api_key", ""))
@@ -100,6 +131,8 @@ def llm_view():
 CONFIG = load_config()
 INPUT_DIR = os.path.join(CONFIG["comfy_dir"].replace("\\", "/"), "input")
 JOBS = {}
+JOB_QUEUE = queue.Queue()
+CURRENT_JOB_ID = None
 LOCK = threading.Lock()
 
 SYSTEM_METRICS = {
@@ -281,6 +314,17 @@ PROMPT_STYLES = {
             "Output ONLY the English prompt as comma-separated descriptive tags. Do NOT explain. No quotes, no markdown."
         ),
     },
+    "danbooru": {
+        "name": "Danbooru 动漫二创 (Anime Tags)",
+        "desc": "专为二次元动漫与角色二创优化，由 LLM 将自然语言意图编译为标准 Danbooru 逗号标签格式",
+        "system": (
+            "You are an expert anime AI prompt engineer specializing in Danbooru tags for Illustrious-XL, NoobAI-XL, and SDXL anime models. "
+            "Convert the user's Chinese concept into standard Danbooru-style English comma-separated tags. "
+            "Include: character traits, outfit, posture, facial expression, action, setting, lighting, atmosphere. "
+            "Use precise Booru syntax (e.g. '1girl, solo, firefly (honkai: star rail), black hairband, green eyes, school uniform, white shirt, sitting, reading book, window, sunset, soft lighting, depth of field'). "
+            "Output ONLY the comma-separated English tags. Do NOT write conversational explanations, prose, markdown or quotes."
+        ),
+    },
     "direct": {
         "name": "精准直译 (Direct Tagging)",
         "desc": "忠实直译，不额外添加过度发散的描述",
@@ -316,56 +360,88 @@ def clean_llm_output(text):
 
 # ---------- ComfyUI 工作流 ----------
 
-def wf_image(prompt, width, height, steps, seed, init=None, denoise=1.0, neg=None, cfg=6.0):
-    """init=None 走纯文生图；init 给了 ComfyUI input 目录里的文件名则走以图生图。"""
+def wf_image(
+    prompt,
+    width,
+    height,
+    steps,
+    seed,
+    init=None,
+    denoise=1.0,
+    neg=None,
+    cfg=6.0,
+    sampler="dpmpp_2m_sde",
+    scheduler="karras",
+    checkpoint=None,
+    lora_name=None,
+    lora_strength=1.0,
+):
+    """init=None 走纯文生图；init 给了 ComfyUI input 目录里的文件名则走以图生图。支持自定义底模、采样器及可选 LoRA。"""
     negative = neg.strip() if neg and neg.strip() else DEFAULT_NEG_IMAGE
-    if init:
-        latent = {
-            "4": {"class_type": "LoadImage", "inputs": {"image": init}},
-            "8": {
-                "class_type": "ImageScale",
-                "inputs": {
-                    "image": ["4", 0],
-                    "upscale_method": "bicubic",
-                    "width": width,
-                    "height": height,
-                    "crop": "disabled",
-                },
+    ckpt = (checkpoint or "").strip() or CONFIG["image_checkpoint"]
+
+    nodes = {
+        "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": ckpt}},
+    }
+    model_src = ["1", 0]
+    clip_src = ["1", 1]
+
+    if lora_name and str(lora_name).strip():
+        nodes["10"] = {
+            "class_type": "LoraLoader",
+            "inputs": {
+                "model": model_src,
+                "clip": clip_src,
+                "lora_name": str(lora_name).strip(),
+                "strength_model": float(lora_strength),
+                "strength_clip": float(lora_strength),
             },
-            "9": {"class_type": "VAEEncode", "inputs": {"pixels": ["8", 0], "vae": ["1", 2]}},
         }
+        model_src = ["10", 0]
+        clip_src = ["10", 1]
+
+    nodes["2"] = {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": clip_src}}
+    nodes["3"] = {"class_type": "CLIPTextEncode", "inputs": {"text": negative, "clip": clip_src}}
+
+    if init:
+        nodes["4"] = {"class_type": "LoadImage", "inputs": {"image": init}}
+        nodes["8"] = {
+            "class_type": "ImageScale",
+            "inputs": {
+                "image": ["4", 0],
+                "upscale_method": "bicubic",
+                "width": width,
+                "height": height,
+                "crop": "disabled",
+            },
+        }
+        nodes["9"] = {"class_type": "VAEEncode", "inputs": {"pixels": ["8", 0], "vae": ["1", 2]}}
         latent_src = ["9", 0]
     else:
-        latent = {
-            "4": {
-                "class_type": "EmptyLatentImage",
-                "inputs": {"width": width, "height": height, "batch_size": 1, "seed": seed},
-            }
+        nodes["4"] = {
+            "class_type": "EmptyLatentImage",
+            "inputs": {"width": width, "height": height, "batch_size": 1, "seed": seed},
         }
         latent_src = ["4", 0]
-    return {
-        "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": CONFIG["image_checkpoint"]}},
-        "2": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["1", 1]}},
-        "3": {"class_type": "CLIPTextEncode", "inputs": {"text": negative, "clip": ["1", 1]}},
-        **latent,
-        "5": {
-            "class_type": "KSampler",
-            "inputs": {
-                "model": ["1", 0],
-                "positive": ["2", 0],
-                "negative": ["3", 0],
-                "latent_image": latent_src,
-                "seed": seed,
-                "steps": steps,
-                "cfg": float(cfg),
-                "sampler_name": "dpmpp_2m_sde",
-                "scheduler": "karras",
-                "denoise": denoise,
-            },
+
+    nodes["5"] = {
+        "class_type": "KSampler",
+        "inputs": {
+            "model": model_src,
+            "positive": ["2", 0],
+            "negative": ["3", 0],
+            "latent_image": latent_src,
+            "seed": seed,
+            "steps": steps,
+            "cfg": float(cfg),
+            "sampler_name": sampler or "dpmpp_2m_sde",
+            "scheduler": scheduler or "karras",
+            "denoise": denoise,
         },
-        "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
-        "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "comfyweb/img"}},
     }
+    nodes["6"] = {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}}
+    nodes["7"] = {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "comfyweb/img"}}
+    return nodes
 
 
 def wf_video(prompt, image_name, width, height, length, steps, seed, strength=1.0, neg=None, cfg=3.0):
@@ -426,12 +502,18 @@ def wf_video(prompt, image_name, width, height, length, steps, seed, strength=1.
     }
 
 
+STANDARD_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/131.0.0.0 Safari/537.36"
+)
+
 # ---------- HTTP 基础 ----------
 
 def http_json(url, payload=None, headers=None, timeout=30):
     data = json.dumps(payload).encode() if payload is not None else None
     hdrs = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ComfyWeb/1.0",
+        "User-Agent": STANDARD_UA,
     }
     if data is not None:
         hdrs["Content-Type"] = "application/json"
@@ -464,6 +546,20 @@ def comfy_get(path, timeout=30):
 
 def comfy_post(path, payload, timeout=60):
     return http_json(CONFIG["comfy_url"] + path, payload, timeout=timeout)
+
+
+def comfy_interrupt():
+    """向 ComfyUI 发送 /interrupt 中断当前正在执行的采样运算"""
+    try:
+        req = urllib.request.Request(
+            CONFIG["comfy_url"] + "/interrupt",
+            data=b"{}",
+            headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ComfyWeb/1.0"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as r:
+            pass
+    except Exception as e:
+        print(f"[WARN] ComfyUI interrupt error: {e}")
 
 
 IMG_EXT = (".png", ".jpg", ".jpeg", ".webp")
@@ -664,6 +760,41 @@ def get_styles():
     return [{"id": k, "name": v["name"], "desc": v["desc"]} for k, v in PROMPT_STYLES.items()]
 
 
+def list_local_models():
+    """扫描 ComfyUI 目录下的 checkpoints 与 loras"""
+    comfy_dir = CONFIG.get("comfy_dir") or resolve_comfy_dir()
+    comfy_dir = comfy_dir.replace("\\", "/")
+    ckpts_dir = os.path.join(comfy_dir, "models", "checkpoints")
+    loras_dir = os.path.join(comfy_dir, "models", "loras")
+
+    valid_exts = (".safetensors", ".ckpt", ".pt", ".bin", ".gguf")
+    checkpoints = []
+    if os.path.isdir(ckpts_dir):
+        for root, _, files in os.walk(ckpts_dir):
+            for f in files:
+                if f.lower().endswith(valid_exts):
+                    rel = os.path.relpath(os.path.join(root, f), ckpts_dir).replace("\\", "/")
+                    checkpoints.append(rel)
+    checkpoints.sort()
+
+    loras = []
+    if os.path.isdir(loras_dir):
+        for root, _, files in os.walk(loras_dir):
+            for f in files:
+                if f.lower().endswith(valid_exts):
+                    rel = os.path.relpath(os.path.join(root, f), loras_dir).replace("\\", "/")
+                    loras.append(rel)
+    loras.sort()
+
+    return {
+        "comfy_dir": comfy_dir,
+        "loras_dir": loras_dir,
+        "checkpoints": checkpoints,
+        "loras": loras,
+        "current_checkpoint": CONFIG.get("image_checkpoint", "sd_xl_base_1.0.safetensors"),
+    }
+
+
 def fetch_llm_models(base_url, api_key):
     """从 OpenAI 兼容接口获取模型列表"""
     if not base_url or not api_key:
@@ -672,7 +803,7 @@ def fetch_llm_models(base_url, api_key):
         base_url.rstrip("/") + "/models",
         headers={
             "Authorization": f"Bearer {api_key}",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ComfyWeb/1.0",
+            "User-Agent": STANDARD_UA,
         },
     )
     with urllib.request.urlopen(req, timeout=10) as r:
@@ -800,9 +931,12 @@ def translate(text, style="photorealistic", mode="image", job=None):
 
 # ---------- 任务执行 ----------
 
-def wait_for_output(prompt_id, node_id, timeout=1800):
+def wait_for_output(prompt_id, node_id, job=None, timeout=1800):
     t0 = time.time()
     while time.time() - t0 < timeout:
+        if job and job.get("state") == "cancelled":
+            comfy_interrupt()
+            raise InterruptedError("任务已被用户取消")
         hist = comfy_get(f"/history/{prompt_id}", timeout=30)
         entry = hist.get(prompt_id)
         if entry:
@@ -881,10 +1015,20 @@ def stage_image(job, prompt, params, seed, ref=None):
             denoise=params["denoise"] if init else 1.0,
             neg=params.get("negative_prompt"),
             cfg=params.get("cfg", 6.0),
+            sampler=params.get("sampler", "dpmpp_2m_sde"),
+            scheduler=params.get("scheduler", "karras"),
+            checkpoint=params.get("checkpoint"),
+            lora_name=params.get("lora_name"),
+            lora_strength=params.get("lora_strength", 1.0),
         )
         pid = comfy_post("/prompt", {"prompt": wf, "client_id": job["id"]})["prompt_id"]
-        job["logs"].append(f"{'以图生图' if init else '文生图'}已提交 {w}x{h} prompt_id={pid}")
-        item, secs = wait_for_output(pid, "7")
+        info_parts = [f"{'以图生图' if init else '文生图'}已提交 {w}x{h}"]
+        if params.get("checkpoint"):
+            info_parts.append(f"底模: {params['checkpoint']}")
+        if params.get("lora_name"):
+            info_parts.append(f"LoRA: {params['lora_name']} ({params.get('lora_strength', 1.0)})")
+        job["logs"].append(f"{' | '.join(info_parts)} prompt_id={pid}")
+        item, secs = wait_for_output(pid, "7", job=job)
         name, meta = pull(item, f"{job['id']}_img")
         job["image"] = {"file": name, "seconds": round(secs, 1), **meta}
         job["logs"].append(f"生图完成 {round(secs, 1)}s -> {name}")
@@ -911,7 +1055,7 @@ def stage_video(job, prompt, params, seed, ref):
         )
         pid = comfy_post("/prompt", {"prompt": wf, "client_id": job["id"]})["prompt_id"]
         job["logs"].append(f"图生视频已提交 prompt_id={pid}")
-        item, secs = wait_for_output(pid, "22")
+        item, secs = wait_for_output(pid, "22", job=job)
         fname, meta = pull(item, f"{job['id']}_vid")
         job["video"] = {"file": fname, "seconds": round(secs, 1), **meta}
         job["logs"].append(f"图生视频完成 {round(secs, 1)}s -> {fname}")
@@ -922,20 +1066,31 @@ def stage_video(job, prompt, params, seed, ref):
 def run_job(job):
     params, ref = job["params"], job["ref"]
     try:
+        if job.get("state") == "cancelled":
+            return
+
         prompt_en = (job.get("prompt_en") or "").strip()
         used_llm = False
         llm_err = ""
 
-        # 如果前端没有显式提供已确认的 prompt_en，则触发自动改写
-        if not prompt_en:
+        # 如果前端没有显式提供已确认的 prompt_en，或者 prompt_en 中仍残存未翻译中文，则触发自动改写与编译
+        has_cjk = bool(CJK.search(prompt_en))
+        if not prompt_en or has_cjk:
             style = job.get("style", "photorealistic")
-            job["logs"].append(f"正在进行提示词优化与翻译 (风格: {style})...")
-            prompt_en, used_llm, llm_err = translate(job["prompt_raw"], style=style, mode=job["mode"], job=job)
-            if used_llm:
-                job["logs"].append(f"LLM 优化提示词完成 -> {prompt_en[:120]}...")
+            target = prompt_en if has_cjk else job["prompt_raw"]
+            job["logs"].append(f"检测到中文描述，正在调用 AI 进行英文提示词编译 (风格: {style})...")
+            compiled_en, used_llm, llm_err = translate(target, style=style, mode=job["mode"], job=job)
+            if used_llm and compiled_en:
+                prompt_en = compiled_en
+                job["logs"].append(f"AI 提示词编译完成 -> {prompt_en[:120]}...")
+            elif llm_err:
+                job["logs"].append(f"提示词编译提示: {llm_err}")
         else:
             used_llm = True
             job["logs"].append(f"使用已确认的英文提示词 -> {prompt_en[:120]}...")
+
+        if job.get("state") == "cancelled":
+            return
 
         job["llm_error"] = llm_err
         job["prompt_en"] = prompt_en
@@ -948,6 +1103,8 @@ def run_job(job):
             if ref is None:
                 job["logs"].append("文生视频 = 两步串联：SDXL 先出首帧，LTX-Video 再让它动起来")
                 img = stage_image(job, prompt_en, params, seed)
+                if job.get("state") == "cancelled":
+                    return
                 ref = {"source": "ours", "name": img, "subfolder": ""}
             else:
                 job["logs"].append("图生视频：直接采用选定参考图作为起始帧驱动 LTX-Video")
@@ -955,37 +1112,152 @@ def run_job(job):
         else:
             stage_image(job, prompt_en, params, seed, ref)
 
-        job["state"] = "done"
-        save_job_meta(job)
+        if job.get("state") != "cancelled":
+            job["state"] = "done"
+            save_job_meta(job)
+    except InterruptedError:
+        job["state"] = "cancelled"
+        job["logs"].append("任务已被用户取消")
     except Exception as e:
-        job["state"] = "error"
-        job["error"] = f"{type(e).__name__}: {e}"
-        job["logs"].append(f"任务出错: {job['error']}")
+        if job.get("state") != "cancelled":
+            job["state"] = "error"
+            job["error"] = f"{type(e).__name__}: {e}"
+            job["logs"].append(f"任务出错: {job['error']}")
     finally:
         job["finished_at"] = time.time()
         with LOCK:
             JOBS[job["id"]]["logs"] = list(job["logs"])
 
 
+def serialize_job(job, position=None):
+    """格式化任务对象，附带排队位次与状态"""
+    if not job:
+        return None
+    return {
+        "id": job["id"],
+        "mode": job.get("mode", "image"),
+        "prompt_raw": job.get("prompt_raw", ""),
+        "prompt_en": job.get("prompt_en", ""),
+        "style": job.get("style", "photorealistic"),
+        "state": job.get("state", "queued"),
+        "logs": list(job.get("logs", [])),
+        "image": job.get("image"),
+        "video": job.get("video"),
+        "seed": job.get("seed", 0),
+        "params": dict(job.get("params") or {}),
+        "created_at": job.get("created_at", 0),
+        "started_at": job.get("started_at", 0),
+        "finished_at": job.get("finished_at", 0),
+        "error": job.get("error"),
+        "queue_position": position,
+    }
+
+
+def get_queue_info():
+    """获取当前生成队列全局状态：正在执行的任务、排队中任务列表及最近完成任务"""
+    with LOCK:
+        running = None
+        if CURRENT_JOB_ID and CURRENT_JOB_ID in JOBS:
+            running = serialize_job(JOBS[CURRENT_JOB_ID], position=0)
+
+        queued = []
+        pos = 1
+        for jid in list(JOB_QUEUE.queue):
+            j = JOBS.get(jid)
+            if j and j.get("state") == "queued":
+                queued.append(serialize_job(j, position=pos))
+                pos += 1
+
+        recent = [
+            serialize_job(j) for j in JOBS.values()
+            if j.get("state") in ("done", "error", "cancelled")
+        ]
+        recent.sort(key=lambda x: x.get("finished_at") or 0, reverse=True)
+
+        return {
+            "current_job_id": CURRENT_JOB_ID,
+            "running": running,
+            "queued": queued,
+            "queued_count": len(queued),
+            "recent": recent[:10],
+        }
+
+
+def cancel_job(jid):
+    """取消指定任务：若排队中则直接置为 cancelled；若正在运行则发送 /interrupt 给 ComfyUI"""
+    global CURRENT_JOB_ID
+    with LOCK:
+        job = JOBS.get(jid)
+        if not job:
+            return False, "任务不存在"
+        state = job.get("state")
+        if state in ("done", "error", "cancelled"):
+            return False, f"任务已处于结束状态 ({state})"
+
+        if state == "queued":
+            job["state"] = "cancelled"
+            job["finished_at"] = time.time()
+            job["logs"].append("用户取消了排队中的任务")
+            return True, "已移出排队队列"
+
+        if state == "running":
+            job["state"] = "cancelled"
+            job["finished_at"] = time.time()
+            job["logs"].append("用户请求中断任务，正在通知 ComfyUI 停止计算...")
+            comfy_interrupt()
+            return True, "已发送中断信号"
+
+    return False, "未知状态"
+
+
+def queue_worker():
+    """单并发 FIFO 队列调度工作线程，严格保证同一时刻仅运行一个绘图/渲染任务，杜绝显存 OOM"""
+    global CURRENT_JOB_ID
+    while True:
+        try:
+            jid = JOB_QUEUE.get()
+            with LOCK:
+                job = JOBS.get(jid)
+                if not job or job.get("state") == "cancelled":
+                    JOB_QUEUE.task_done()
+                    continue
+                CURRENT_JOB_ID = jid
+                job["state"] = "running"
+                job["started_at"] = time.time()
+                job["logs"].append("队列调度就绪，开始执行生成任务...")
+            try:
+                run_job(job)
+            finally:
+                with LOCK:
+                    CURRENT_JOB_ID = None
+                JOB_QUEUE.task_done()
+        except Exception as e:
+            print(f"[queue_worker error] {e}")
+            time.sleep(0.5)
+
+
 def new_job(mode, prompt, params, ref, prompt_en="", style="photorealistic"):
+    jid = uuid.uuid4().hex[:12]
     job = {
-        "id": uuid.uuid4().hex[:12],
+        "id": jid,
         "mode": mode,
         "prompt_raw": prompt,
         "prompt_en": prompt_en,
         "style": style,
         "ref": ref,
         "params": params,
-        "state": "running",
-        "logs": [],
+        "state": "queued",
+        "logs": ["已加入生成队列，等待排队调度..."],
         "image": None,
         "video": None,
-        "started_at": time.time(),
+        "created_at": time.time(),
+        "started_at": 0,
+        "finished_at": 0,
     }
     with LOCK:
-        JOBS[job["id"]] = job
-    threading.Thread(target=run_job, args=(job,), daemon=True).start()
-    return job["id"]
+        JOBS[jid] = job
+    JOB_QUEUE.put(jid)
+    return jid
 
 
 def is_local_client(handler):
@@ -1094,6 +1366,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, SYSTEM_METRICS)
         elif path == "/api/styles":
             self.send_json(200, get_styles())
+        elif path == "/api/models":
+            self.send_json(200, list_local_models())
         elif path == "/api/preview":
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             ref = {
@@ -1108,11 +1382,23 @@ class Handler(BaseHTTPRequestHandler):
                 return
             ctype = mimetypes.guess_type(ref["name"])[0] or "image/png"
             self.send_blob(200, blob, ctype)
+        elif path == "/api/queue":
+            self.send_json(200, get_queue_info())
         elif path.startswith("/api/jobs/"):
             jid = path.rsplit("/", 1)[-1]
             with LOCK:
                 job = JOBS.get(jid)
-                snapshot = dict(job) if job else None
+                if job:
+                    pos = None
+                    if CURRENT_JOB_ID == jid:
+                        pos = 0
+                    elif job.get("state") == "queued":
+                        q_list = list(JOB_QUEUE.queue)
+                        if jid in q_list:
+                            pos = q_list.index(jid) + 1
+                    snapshot = serialize_job(job, position=pos)
+                else:
+                    snapshot = None
             if not snapshot:
                 meta = get_file_metadata(f"{jid}_img.png")
                 if meta and meta.get("id"):
@@ -1123,8 +1409,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, snapshot)
         elif path == "/api/jobs":
             with LOCK:
-                items = [dict(v) for v in JOBS.values()]
-            items.sort(key=lambda x: x["started_at"], reverse=True)
+                items = [serialize_job(v) for v in JOBS.values()]
+            items.sort(key=lambda x: x["created_at"] or x["started_at"], reverse=True)
             self.send_json(200, items[:50])
         else:
             self.send_json(404, {"error": "not found"})
@@ -1163,6 +1449,28 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/jobs":
             self.handle_job(body)
+        elif path == "/api/jobs/cancel":
+            jid = str(body.get("id") or body.get("jid") or "").strip()
+            if not jid:
+                self.send_json(400, {"error": "缺少任务 ID"})
+                return
+            ok, msg = cancel_job(jid)
+            self.send_json(200, {"ok": ok, "message": msg, "id": jid})
+        elif path.startswith("/api/jobs/") and path.endswith("/cancel"):
+            jid = path.split("/")[3]
+            ok, msg = cancel_job(jid)
+            self.send_json(200, {"ok": ok, "message": msg, "id": jid})
+        elif path == "/api/queue/clear":
+            cleared = []
+            with LOCK:
+                for jid in list(JOB_QUEUE.queue):
+                    j = JOBS.get(jid)
+                    if j and j.get("state") == "queued":
+                        j["state"] = "cancelled"
+                        j["finished_at"] = time.time()
+                        j["logs"].append("用户清空了排队队列")
+                        cleared.append(jid)
+            self.send_json(200, {"ok": True, "cleared_count": len(cleared), "ids": cleared})
         elif path == "/api/gallery/delete":
             self.handle_gallery_delete(body)
         elif path == "/api/prompt/optimize":
@@ -1313,6 +1621,11 @@ class Handler(BaseHTTPRequestHandler):
                 "steps": int(body.get("steps", 25)),
                 "seed": int(body.get("seed", 0)),
                 "cfg": float(body.get("cfg", 6.0)),
+                "sampler": str(body.get("sampler") or "dpmpp_2m_sde").strip(),
+                "scheduler": str(body.get("scheduler") or "karras").strip(),
+                "checkpoint": str(body.get("checkpoint") or "").strip() or None,
+                "lora_name": str(body.get("lora_name") or "").strip() or None,
+                "lora_strength": float(body.get("lora_strength", 1.0)),
                 "v_width": int(body.get("v_width", 768)),
                 "v_height": int(body.get("v_height", 512)),
                 "length": int(body.get("length", 49)),
@@ -1383,6 +1696,7 @@ def main():
     else:
         state = "未配置（点击右上角设置填入 API Key 与服务商地址）"
     print(f"LLM 改写   ->  {state}")
+    threading.Thread(target=queue_worker, daemon=True).start()
     threading.Thread(target=monitor_loop, daemon=True).start()
     ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
 

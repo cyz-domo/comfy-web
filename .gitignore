@@ -14,6 +14,17 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Large AI Models & Weights (never commit models to git)
+*.safetensors
+*.ckpt
+*.pt
+*.bin
+*.pth
+*.gguf
+models/
+ComfyUI/
+
 # IDE
 .vscode/
 .idea/
+

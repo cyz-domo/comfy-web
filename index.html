@@ -581,6 +581,505 @@
   .hint.warn { color: var(--warning); }
   .hint.ok { color: var(--primary); }
 
+  /* Top Navigation Bar */
+  .nav-pages {
+    display: flex;
+    align-items: center;
+    background: #0d131f;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.22rem;
+    gap: 0.35rem;
+  }
+  .nav-page-btn {
+    border: none;
+    background: transparent;
+    color: var(--fg-muted);
+    padding: 0.38rem 0.85rem;
+    border-radius: 7px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .nav-page-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .nav-page-btn.active.standard-tab {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.15));
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34d399;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+  }
+  .nav-page-btn.active.anime-tab {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(168, 85, 247, 0.2));
+    border: 1px solid rgba(236, 72, 153, 0.45);
+    color: #f472b6;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(236, 72, 153, 0.22);
+  }
+  .nav-badge-pill {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(236, 72, 153, 0.2);
+    color: #f472b6;
+    border: 1px solid rgba(236, 72, 153, 0.35);
+    font-weight: 600;
+  }
+
+  /* Anime Studio Styles */
+  .anime-banner {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(168, 85, 247, 0.08));
+    border: 1px solid rgba(236, 72, 153, 0.3);
+    border-radius: 10px;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 0.9rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+  .anime-banner-icon { font-size: 1.35rem; line-height: 1; flex-shrink: 0; }
+  .anime-banner-title { font-size: 0.85rem; font-weight: 700; color: #f472b6; margin-bottom: 0.2rem; }
+  .anime-banner-desc { font-size: 0.73rem; color: #cbd5e1; line-height: 1.45; }
+
+  .char-subtabs {
+    display: flex;
+    gap: 0.35rem;
+    background: #0d131f;
+    padding: 0.3rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 0.75rem;
+  }
+  .char-subtab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--fg-muted);
+    padding: 0.4rem 0.3rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s;
+  }
+  .char-subtab:hover { color: #fff; background: rgba(255,255,255,0.03); }
+  .char-subtab.active {
+    background: rgba(236, 72, 153, 0.2);
+    color: #f472b6;
+    font-weight: 600;
+    border: 1px solid rgba(236, 72, 153, 0.35);
+  }
+
+  .char-filter-bar {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.65rem;
+  }
+  .char-filter-pill {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    padding: 0.22rem 0.6rem;
+    border-radius: 6px;
+    background: #0d131f;
+    border: 1px solid var(--border);
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .char-filter-pill:hover { color: #fff; border-color: var(--border-light); }
+  .char-filter-pill.active {
+    background: #1e293b;
+    border-color: #ec4899;
+    color: #f472b6;
+    font-weight: 600;
+  }
+
+  .char-search-box {
+    margin-bottom: 0.65rem;
+    position: relative;
+  }
+  .char-search-box input {
+    padding-left: 2rem;
+    font-size: 0.8rem;
+    height: 34px;
+    border-radius: 7px;
+  }
+  .char-search-icon {
+    position: absolute;
+    left: 0.65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    color: var(--fg-muted);
+    pointer-events: none;
+  }
+
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    gap: 0.55rem;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+  .char-card {
+    background: #0d131f;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 0.65rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    user-select: none;
+  }
+  .char-card:hover {
+    border-color: #ec4899;
+    transform: translateY(-2px);
+    background: #151d2f;
+  }
+  .char-card.selected {
+    border-color: #ec4899;
+    background: rgba(236, 72, 153, 0.16);
+    box-shadow: 0 0 12px rgba(236, 72, 153, 0.3);
+  }
+  .char-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.35rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .char-name { font-size: 0.78rem; font-weight: 600; color: #fff; line-height: 1.25; margin-bottom: 0.15rem; }
+  .char-franchise { font-size: 0.66rem; color: var(--fg-muted); }
+
+  .selected-char-banner {
+    background: #0d1424;
+    border: 1px solid rgba(236, 72, 153, 0.35);
+    border-radius: 8px;
+    padding: 0.65rem 0.8rem;
+    margin-top: 0.4rem;
+  }
+  .selected-char-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #f472b6;
+    margin-bottom: 0.35rem;
+  }
+  .selected-char-tags {
+    font-size: 0.73rem;
+    color: #cbd5e1;
+    font-family: ui-monospace, Consolas, monospace;
+    line-height: 1.45;
+    word-break: break-all;
+  }
+
+  .style-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.45rem;
+    margin-top: 0.35rem;
+  }
+  .style-card-btn {
+    background: #0d131f;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.5rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.18s;
+  }
+  .style-card-btn:hover { border-color: var(--accent); background: #141c2c; }
+  .style-card-btn.active {
+    background: rgba(236, 72, 153, 0.16);
+    border-color: #ec4899;
+  }
+  .style-card-title { font-size: 0.78rem; font-weight: 600; color: #fff; }
+  .style-card-sub { font-size: 0.66rem; color: var(--fg-muted); margin-top: 0.15rem; line-height: 1.35; }
+
+  .btn-anime-generate {
+    width: 100%;
+    margin-top: 1.15rem;
+    padding: 0.85rem;
+    background: linear-gradient(135deg, #ec4899, #a855f7);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.96rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 18px rgba(236, 72, 153, 0.35);
+    transition: all 0.2s;
+  }
+  .btn-anime-generate:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(236, 72, 153, 0.45);
+  }
+  .btn-anime-generate:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Queue Card & Floating Toasts */
+  .queue-card {
+    background: #0f172a;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.65rem 0.95rem;
+    margin-bottom: 1.15rem;
+    transition: all 0.25s ease;
+  }
+  .queue-card.active {
+    border-color: rgba(6, 182, 212, 0.4);
+    box-shadow: 0 0 16px rgba(6, 182, 212, 0.12);
+  }
+  .queue-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .queue-status-left {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+  }
+  .queue-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #64748b;
+    transition: all 0.2s;
+  }
+  .queue-pulse-dot.idle {
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  }
+  .queue-pulse-dot.running {
+    background: #06b6d4;
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.85);
+    animation: pulseGlow 1.4s infinite;
+  }
+  @keyframes pulseGlow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.25); }
+  }
+  .queue-status-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+  .queue-count-badge {
+    font-size: 0.68rem;
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    font-weight: 600;
+  }
+  .queue-btn {
+    font-size: 0.74rem;
+    padding: 0.2rem 0.55rem;
+  }
+  .queue-running-bar {
+    margin-top: 0.55rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+  }
+  .queue-running-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .queue-tag-running {
+    font-size: 0.68rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    background: rgba(6, 182, 212, 0.2);
+    color: #38bdf8;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .queue-running-title {
+    color: #cbd5e1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.76rem;
+  }
+  .queue-running-time {
+    color: #94a3b8;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.72rem;
+    flex-shrink: 0;
+  }
+  .btn-cancel-job {
+    font-size: 0.72rem;
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.3);
+    padding: 0.2rem 0.5rem;
+    flex-shrink: 0;
+  }
+  .btn-cancel-job:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+  }
+  .queue-drawer {
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  }
+  .queue-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+  .queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .queue-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    background: #141c2c;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.75rem;
+  }
+  .queue-item-left {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    overflow: hidden;
+    flex: 1;
+  }
+  .queue-pos-badge {
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: #38bdf8;
+    font-family: ui-monospace, Consolas, monospace;
+    background: rgba(6, 182, 212, 0.15);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .queue-mode-tag {
+    font-size: 0.66rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    flex-shrink: 0;
+  }
+  .queue-mode-tag.anime {
+    background: rgba(236, 72, 153, 0.15);
+    color: #f472b6;
+  }
+  .queue-mode-tag.video {
+    background: rgba(139, 92, 246, 0.15);
+    color: #c084fc;
+  }
+  .queue-item-desc {
+    color: #cbd5e1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.74rem;
+  }
+  .queue-item-del {
+    color: #f87171;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .queue-item-del:hover {
+    background: rgba(239, 68, 68, 0.2);
+  }
+
+  /* Toast Notification */
+  .toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+  }
+  .toast {
+    background: rgba(17, 24, 39, 0.95);
+    border: 1px solid var(--border-light);
+    color: #fff;
+    padding: 0.55rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: toastIn 0.25s ease-out;
+    pointer-events: auto;
+  }
+  .toast.success { border-color: rgba(16, 185, 129, 0.5); }
+  .toast.warn { border-color: rgba(245, 158, 11, 0.5); }
+  .toast.error { border-color: rgba(239, 68, 68, 0.5); }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
   @media (max-width: 1100px) {
     main { grid-template-columns: 1fr; }
   }
@@ -593,8 +1092,21 @@
     <div class="brand-logo">✨</div>
     <div style="display:flex;align-items:center;gap:.45rem">
       <span class="brand-title">ComfyWeb</span>
-      <span class="brand-badge">SDXL · LTX</span>
+      <span class="brand-badge">Studio</span>
     </div>
+  </div>
+
+  <!-- 顶栏工坊页面切换导航 -->
+  <div class="nav-pages" id="nav-pages">
+    <button class="nav-page-btn active standard-tab" id="tab-standard" title="常规生图与视频工作台 (SDXL / LTX-Video)">
+      <span class="nav-icon">🎨</span>
+      <span class="nav-text">常规工坊</span>
+    </button>
+    <button class="nav-page-btn anime-tab" id="tab-anime" title="二次元角色定制与二创工坊 (Danbooru 角色库 / LoRA)">
+      <span class="nav-icon">🌸</span>
+      <span class="nav-text">二次元角色工坊</span>
+      <span class="nav-badge-pill">Danbooru · LoRA</span>
+    </button>
   </div>
 
   <!-- 顶部右侧系统与硬件监控栏 -->
@@ -648,8 +1160,8 @@
 </header>
 
 <main>
-  <!-- 左侧控制面板 -->
-  <section class="control-panel">
+  <!-- 左侧控制面板 1：常规通用工坊 -->
+  <section class="control-panel" id="panel-standard">
     <!-- 1. 模式选择 -->
     <div class="card">
       <div class="card-header">
@@ -876,8 +1388,277 @@
     </div>
   </section>
 
+  <!-- 左侧控制面板 2：二次元角色二创工坊 (Danbooru 角色库 · LoRA · 二创) -->
+  <section class="control-panel anime-studio-panel" id="panel-anime" hidden>
+    <!-- 二创指引说明横幅 -->
+    <div class="anime-banner">
+      <div class="anime-banner-icon">🌸</div>
+      <div>
+        <div class="anime-banner-title">二次元角色二创与 Danbooru 模式</div>
+        <div class="anime-banner-desc">
+          基于 Danbooru 知识库模型与角色 LoRA。无需复杂调参，只需选择已有角色、输入中文剧情脑洞，AI 即可自动编译为精准 Danbooru Tags，实现角色换装、新场景与剧情二创！
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. 角色选择与设定 (跑谁？) -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="card-title-icon">🎭</span> 角色设定 (跑谁？)</span>
+        <span class="hint" id="anime-char-status" style="margin:0;color:#f472b6">Danbooru 免LoRA</span>
+      </div>
+
+      <!-- 角色模式子切换卡 -->
+      <div class="char-subtabs">
+        <button class="char-subtab active" id="btn-subtab-danbooru" data-mode="danbooru">
+          ⭐ Danbooru 角色库 (免LoRA)
+        </button>
+        <button class="char-subtab" id="btn-subtab-lora" data-mode="lora">
+          🧩 角色 LoRA
+        </button>
+        <button class="char-subtab" id="btn-subtab-custom" data-mode="custom">
+          ✏️ 自定义 Tag
+        </button>
+      </div>
+
+      <!-- 子面板 A: Danbooru 角色库 -->
+      <div id="anime-box-danbooru">
+        <!-- 分类过滤 Pills -->
+        <div class="char-filter-bar" id="anime-char-filters">
+          <button class="char-filter-pill active" data-franchise="all">全部</button>
+          <button class="char-filter-pill" data-franchise="崩坏：星穹铁道">星穹铁道</button>
+          <button class="char-filter-pill" data-franchise="原神">原神</button>
+          <button class="char-filter-pill" data-franchise="绝区零">绝区零</button>
+          <button class="char-filter-pill" data-franchise="鸣潮">鸣潮</button>
+          <button class="char-filter-pill" data-franchise="热门动画">热门动画</button>
+        </div>
+
+        <!-- 角色搜索输入框 -->
+        <div class="char-search-box">
+          <span class="char-search-icon">🔍</span>
+          <input type="text" id="anime-char-search" placeholder="搜索角色名或作品 (如 流萤 / 原神 / 芙莉莲)..." />
+        </div>
+
+        <!-- 角色卡片网格 -->
+        <div class="char-grid" id="anime-char-grid"></div>
+
+        <!-- 选中的角色状态横幅 -->
+        <div class="selected-char-banner" id="anime-selected-banner" hidden>
+          <div class="selected-char-header">
+            <span id="anime-selected-name" style="font-weight:700">已锁定角色</span>
+            <button class="btn-ghost" id="anime-btn-clear-char" style="padding:.2rem .45rem;font-size:.7rem;color:#fca5a5">✖ 清空</button>
+          </div>
+          <div class="selected-char-tags" id="anime-selected-tags"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.45rem;padding-top:.45rem;border-top:1px dashed rgba(236,72,153,0.25)">
+            <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;margin:0;font-size:.73rem;color:#f472b6" title="开启后自动排除法杖、斗篷等原版战斗装备，避免与连帽衫、私服产生怪异冲突">
+              <input type="checkbox" id="anime-custom-outfit-toggle" checked style="width:auto;margin:0" /> 👗 自由换装二创模式 (排除法杖/斗篷等原版服饰)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 子面板 B: 本地角色 LoRA -->
+      <div id="anime-box-lora" hidden>
+        <label>选择已安装的 LoRA 模型</label>
+        <select id="anime-lora-select">
+          <option value="">(扫描中...)</option>
+        </select>
+        <div class="hint" id="anime-lora-hint" style="margin-top:.35rem">
+          💡 请将下载的二次元 LoRA (.safetensors) 放入 ComfyUI 的 <code>models/loras/</code> 目录
+        </div>
+
+        <div style="margin-top:.75rem">
+          <div style="display:flex;justify-content:space-between">
+            <label style="margin:0">LoRA 权重强度 (Strength)</label>
+            <span class="range-val" id="anime-lora-strength-val" style="color:#f472b6">0.85</span>
+          </div>
+          <div class="range-box" style="margin-top:.35rem">
+            <input type="range" id="anime-lora-strength" min="0.1" max="1.5" step="0.05" value="0.85" />
+          </div>
+        </div>
+
+        <div style="margin-top:.75rem">
+          <label>触发词 / 专有提示词 (Trigger Words)</label>
+          <input type="text" id="anime-lora-trigger" placeholder="例如该 LoRA 推荐填写的触发词 (可为空)" />
+        </div>
+      </div>
+
+      <!-- 子面板 C: 自定义角色 Tag -->
+      <div id="anime-box-custom" hidden>
+        <label>自定义 Danbooru / Civitai 角色 Tags</label>
+        <textarea id="anime-custom-tags" placeholder="例如从 Danbooru 或 Civitai 复制的标签：1girl, solo, firefly (honkai: star rail), black hairband, green eyes..." style="min-height:75px"></textarea>
+      </div>
+    </div>
+
+    <!-- 2. 剧情二创与自然语言描述 (怎么跑？) -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="card-title-icon">📝</span> 剧情二创与动作场景 (怎么跑？)</span>
+      </div>
+
+      <label>中文自然语言二创场景 (服装 / 动作 / 剧情 / 心境)</label>
+      <textarea id="anime-prompt-zh" placeholder="用自然中文描述二创脑洞，例如：穿着现代冬日黑色大风衣，在漫天飞雪的便利店门口捧着热咖啡，回眸温柔微笑..."></textarea>
+
+      <!-- 灵感二创词条 -->
+      <div class="tag-pool" id="anime-inspiration-tags"></div>
+
+      <!-- AI 编译工具栏 -->
+      <div class="prompt-toolbar" style="margin-top:.75rem">
+        <button class="btn-magic" id="anime-btn-compile" style="background:linear-gradient(135deg, #ec4899, #a855f7)">
+          <span>✨</span><span id="anime-compile-text">编译为 Danbooru 提示词</span>
+        </button>
+        <span class="hint" id="anime-compile-status" style="margin:0"></span>
+      </div>
+
+      <!-- 编译出的英文 Danbooru Tags 预览与编辑 -->
+      <div class="trans-preview" style="border-color:rgba(236, 72, 153, 0.35);margin-top:.75rem">
+        <div class="trans-preview-header" style="color:#f472b6">
+          <span>🎯 最终 Danbooru 提示词 (可手动微调)</span>
+          <button class="btn-ghost" id="anime-btn-clear-en" style="padding:.1rem .4rem;font-size:.68rem">清空</button>
+        </div>
+        <textarea id="anime-prompt-en" placeholder="点击上方「编译为 Danbooru 提示词」生成，或直接在此编写英文 Tags..." style="min-height:85px"></textarea>
+      </div>
+    </div>
+
+    <!-- 3. 画风与画师质感注入 (怎么画？) -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="card-title-icon">🎨</span> 画风与画师质感 (怎么画？)</span>
+        <span class="hint" id="anime-style-hint" style="margin:0">可选项</span>
+      </div>
+      <div class="style-card-grid" id="anime-style-grid"></div>
+    </div>
+
+    <!-- 4. 二次元生成参数与底模 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="card-title-icon">⚙️</span> 二次元生成参数</span>
+      </div>
+
+      <!-- 底模选择器 -->
+      <label>基底模型 (Checkpoint)</label>
+      <select id="anime-checkpoint-select">
+        <option value="">(扫描中...)</option>
+      </select>
+      <div class="hint" id="anime-ckpt-hint">
+        💡 推荐放入 <b>WAI-illustrious-SDXL</b> 或动漫 Checkpoint 以获得最佳 Danbooru 还原度
+      </div>
+
+      <!-- 推荐画幅比例 -->
+      <label style="margin-top:.75rem">画面尺寸 (专为动漫插画优化)</label>
+      <select id="anime-size-select">
+        <option value="832x1216" selected>832 × 1216 (推荐竖屏立绘 · 细节最充沛)</option>
+        <option value="1216x832">1216 × 832 (推荐宽屏场景 · 电脑壁纸)</option>
+        <option value="768x1344">768 × 1344 (修长全身立绘 · 手机壁纸)</option>
+        <option value="1024x1024">1024 × 1024 (正方形画幅 · 头像/局部)</option>
+        <option value="1344x768">1344 × 768 (电影级超宽屏)</option>
+      </select>
+
+      <!-- 采样步数 & CFG (预设针对动漫的最佳参数) -->
+      <div class="row-2" style="margin-top:.75rem">
+        <div>
+          <label>采样步数 (Steps)</label>
+          <input type="number" id="anime-steps" value="28" min="15" max="50" />
+        </div>
+        <div>
+          <label>提示词引导度 (CFG)</label>
+          <input type="number" id="anime-cfg" value="7.5" min="2.0" max="15.0" step="0.5" />
+        </div>
+      </div>
+
+      <!-- 采样器与调度器 -->
+      <div class="row-2" style="margin-top:.75rem">
+        <div>
+          <label>采样器 (Sampler)</label>
+          <select id="anime-sampler">
+            <option value="euler" selected>Euler (二次元最推荐)</option>
+            <option value="dpmpp_2m_sde">DPM++ 2M SDE</option>
+            <option value="dpmpp_2m">DPM++ 2M</option>
+            <option value="euler_ancestral">Euler a</option>
+          </select>
+        </div>
+        <div>
+          <label>调度器 (Scheduler)</label>
+          <select id="anime-scheduler">
+            <option value="normal" selected>Normal (标准)</option>
+            <option value="karras">Karras</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 随机种子 -->
+      <label style="margin-top:.75rem">随机种子 (Seed，0 = 每次随机)</label>
+      <div class="seed-box">
+        <input type="number" id="anime-seed" value="0" min="0" />
+        <button class="btn-ghost" id="anime-btn-rand-seed">🎲 随机</button>
+        <button class="btn-ghost" id="anime-btn-zero-seed">↺ 0</button>
+      </div>
+
+      <!-- 负面提示词与 NSFW 防护 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.75rem">
+        <label style="margin:0">二次元负面提示词 (Negative Prompt)</label>
+        <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;margin:0;font-size:.73rem;color:#f472b6">
+          <input type="checkbox" id="anime-nsfw-filter" checked style="width:auto;margin:0" /> 过滤 NSFW
+        </label>
+      </div>
+      <textarea id="anime-negative-prompt" style="min-height:65px;margin-top:.35rem"></textarea>
+
+      <!-- 二次元生成大按钮 -->
+      <button class="btn-anime-generate" id="anime-go-btn">
+        <span id="anime-go-icon">🌸</span>
+        <span id="anime-go-text">开始生成二次元二创作品</span>
+        <span style="font-size:.75rem;opacity:.8;font-weight:400">(Ctrl + Enter)</span>
+      </button>
+      <div class="hint" style="text-align:center;margin-top:.5rem">
+        提示：生成进度与结果将同步在右侧主舞台与画廊呈现
+      </div>
+    </div>
+  </section>
+
   <!-- 右侧展示与资产中心 -->
   <section class="stage-hub">
+    <!-- 异步生成队列监控与任务看板 (FIFO Queue Hub) -->
+    <div class="queue-card" id="queue-card">
+      <div class="queue-header" id="queue-header">
+        <div class="queue-status-left">
+          <span class="queue-pulse-dot idle" id="queue-pulse-dot"></span>
+          <span class="queue-status-title" id="queue-status-title">生成队列空闲 · 随时可添加任务</span>
+          <span class="queue-count-badge" id="queue-count-badge" hidden>0 排队中</span>
+        </div>
+        <div class="queue-actions-right">
+          <button class="btn-ghost queue-btn" id="btn-toggle-queue" title="展开/收起排队任务抽屉">
+            <span id="queue-toggle-text">排队详情 (0)</span>
+            <span id="queue-arrow" style="font-size:.65rem;margin-left:.25rem">▼</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 当前正在执行中的任务条 (Running Job Bar) -->
+      <div class="queue-running-bar" id="queue-running-bar" hidden>
+        <div class="queue-running-info">
+          <span class="queue-tag-running">⚡ 运算中</span>
+          <span class="queue-running-title" id="queue-running-title">准备生成…</span>
+          <span class="queue-running-time" id="queue-running-time">⏱️ 0s</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <button class="btn-ghost btn-cancel-job" id="btn-cancel-running" title="中断当前任务并通知 ComfyUI 停止计算">
+            ⏹️ 中断生成
+          </button>
+        </div>
+      </div>
+
+      <!-- 可折叠的排队任务列表抽屉 (Queue Drawer) -->
+      <div class="queue-drawer" id="queue-drawer" hidden>
+        <div class="queue-drawer-header">
+          <span style="font-size:.72rem;color:var(--fg-muted)">等待执行的任务清单 (按先后顺序自动排队执行)</span>
+          <button class="btn-ghost" id="btn-clear-queue" style="font-size:.68rem;padding:.1rem .35rem;color:var(--danger)">清空排队</button>
+        </div>
+        <div class="queue-list" id="queue-list">
+          <!-- 动态生成的任务项 -->
+        </div>
+      </div>
+    </div>
+
     <!-- 主展示台 (Hero Stage) -->
     <div class="hero-card">
       <div class="hero-media-wrap" id="hero-media-wrap">
@@ -1029,9 +1810,16 @@
 <script>
 const $ = id => document.getElementById(id);
 let mode = "image", useRef = false, selectedRef = null, refNaturalDims = null;
-let isGenerating = false, pollTimer = null, elapsedTimer = null, elapsedSeconds = 0;
+let pollTimer = null, elapsedTimer = null, elapsedSeconds = 0;
 let currentHeroJob = null;
 let lastGpuTelemetryText = "⚡ 显卡就绪";
+
+// 异步 FIFO 生成队列全局状态
+let currentRunningJobId = null;
+let currentTrackedJobId = null;
+let isQueueDrawerOpen = false;
+let queuePollTimer = null;
+let isSubmitting = false;
 
 // ---------- API 封装 ----------
 async function api(path, opts = {}) {
@@ -1045,6 +1833,22 @@ function esc(s) {
   return String(s || "").replace(/[&<>'"]/g, c => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
   }[c]));
+}
+
+// 统一轻量 Toast 通知
+function showToast(msg, type = "success") {
+  const container = $("toast-container");
+  if (!container) return;
+  const t = document.createElement("div");
+  t.className = `toast ${type}`;
+  const icon = type === "error" ? "❌" : (type === "warn" ? "⚠️" : "🎉");
+  t.innerHTML = `<span>${icon}</span><span>${esc(msg)}</span>`;
+  container.appendChild(t);
+  setTimeout(() => {
+    t.style.opacity = "0";
+    t.style.transition = "opacity 0.3s";
+    setTimeout(() => t.remove(), 300);
+  }, 3200);
 }
 
 // ---------- 实时硬件监控 (CPU / 内存 / 显卡显存 / 功耗) ----------
@@ -1082,7 +1886,7 @@ async function pollHardwareMonitor() {
       $("mon-temp").textContent = `${g.temp.toFixed(0)}°C`;
 
       lastGpuTelemetryText = `🎮 ${g.name} · 负载 ${g.util.toFixed(0)}% · 功耗 ${g.power_watts.toFixed(0)}W · 显存 ${g.vram_used_gb}/${g.vram_total_gb}G`;
-      if (isGenerating && $("progress-telemetry")) {
+      if ($("progress-telemetry")) {
         $("progress-telemetry").textContent = lastGpuTelemetryText;
       }
     } else {
@@ -1396,15 +2200,285 @@ async function uploadFile(file) {
 
 // ---------- 任务生成主链路 ----------
 $("go-btn").onclick = () => triggerGeneration();
+$("anime-go-btn").onclick = () => triggerAnimeGeneration();
+
 document.addEventListener("keydown", e => {
   if (e.ctrlKey && e.key === "Enter") {
     e.preventDefault();
-    triggerGeneration();
+    if (currentWorkshopTab === "anime") {
+      triggerAnimeGeneration();
+    } else {
+      triggerGeneration();
+    }
   }
 });
 
+// ---------- 异步 FIFO 生成队列与自恢复驱动引擎 ----------
+
+async function checkQueueStatus() {
+  try {
+    const data = await api("/api/queue");
+    if (!data) return null;
+    const running = data.running;
+    const queued = data.queued || [];
+    const queuedCount = data.queued_count || 0;
+
+    // 1. 顶部指示灯与卡片外观状态
+    const isBusy = !!running || queuedCount > 0;
+    $("queue-card").classList.toggle("active", isBusy);
+    $("queue-pulse-dot").className = "queue-pulse-dot " + (running ? "running" : "idle");
+
+    if (running) {
+      $("queue-status-title").textContent = `正在生成 · 队列共 ${queuedCount + 1} 个任务`;
+    } else {
+      $("queue-status-title").textContent = "生成队列空闲 · 随时可添加新任务";
+    }
+
+    // 2. 排队徽章与折叠按钮
+    if (queuedCount > 0) {
+      $("queue-count-badge").hidden = false;
+      $("queue-count-badge").textContent = `${queuedCount} 排队中`;
+    } else {
+      $("queue-count-badge").hidden = true;
+    }
+    $("queue-toggle-text").textContent = `排队详情 (${queuedCount})`;
+
+    // 3. 正在运行任务条
+    if (running) {
+      $("queue-running-bar").hidden = false;
+      currentRunningJobId = running.id;
+      const desc = running.prompt_raw || running.prompt_en || "任务计算中…";
+      const modeText = running.mode === "video" ? "🎬 视频" : (running.style === "danbooru" ? "🌸 二创" : "🎨 文生图");
+      $("queue-running-title").textContent = `[${modeText}] ${desc}`;
+      const started = running.started_at || running.created_at || (Date.now() / 1000);
+      const elSec = Math.max(0, Math.floor(Date.now() / 1000 - started));
+      $("queue-running-time").textContent = `⏱️ ${elSec}s`;
+    } else {
+      $("queue-running-bar").hidden = true;
+      currentRunningJobId = null;
+    }
+
+    // 4. 排队任务抽屉列表
+    if (queued.length === 0) {
+      $("queue-list").innerHTML = '<div style="font-size:.73rem;color:var(--fg-muted);text-align:center;padding:.5rem">队列暂无排队任务，点击生成将立即开始</div>';
+    } else {
+      $("queue-list").innerHTML = queued.map(it => {
+        const modeTag = it.mode === 'video' ? '🎬 视频' : (it.style === 'danbooru' ? '🌸 二次元' : '🎨 文生图');
+        const modeClass = it.mode === 'video' ? 'video' : (it.style === 'danbooru' ? 'anime' : '');
+        const desc = it.prompt_raw || it.prompt_en || '未命名任务';
+        return `<div class="queue-item" id="qitem-${it.id}">
+          <div class="queue-item-left">
+            <span class="queue-pos-badge">#${it.queue_position}</span>
+            <span class="queue-mode-tag ${modeClass}">${modeTag}</span>
+            <span class="queue-item-desc" title="${esc(desc)}">${esc(desc)}</span>
+          </div>
+          <button class="queue-item-del" onclick="cancelQueuedJob('${it.id}')" title="从队列中取消此任务">✖ 取消</button>
+        </div>`;
+      }).join("");
+    }
+
+    // 5. 动态响应生成按钮文案 (显卡运算时允许无缝继续排队)
+    if (running) {
+      $("go-icon").textContent = "➕";
+      $("go-text").textContent = queuedCount > 0 ? `加入生成队列 (${queuedCount} 排队中)` : "加入生成队列";
+      $("anime-go-icon").textContent = "➕";
+      $("anime-go-text").textContent = queuedCount > 0 ? `加入二次元队列 (${queuedCount} 排队中)` : "加入二次元队列";
+    } else {
+      $("go-icon").textContent = "🚀";
+      $("go-text").textContent = "开始生成";
+      $("anime-go-icon").textContent = "🌸";
+      $("anime-go-text").textContent = "开始生成二次元二创作品";
+    }
+
+    return data;
+  } catch (err) {
+    return null;
+  }
+}
+
+// 追踪特定任务在主舞台展现实时进度
+function startTrackingJob(jobId) {
+  if (!jobId) return;
+  currentTrackedJobId = jobId;
+
+  if (pollTimer) clearInterval(pollTimer);
+  if (elapsedTimer) clearInterval(elapsedTimer);
+
+  $("hero-placeholder").style.display = "none";
+  $("hero-result-view").hidden = true;
+  $("hero-result-view").innerHTML = "";
+  $("hero-info").hidden = true;
+  $("hero-generating-view").hidden = false;
+  $("progress-status-text").textContent = "任务准备中，等待调度…";
+  $("progress-telemetry").textContent = lastGpuTelemetryText;
+  setStepProgress(1);
+
+  elapsedSeconds = 0;
+  $("progress-elapsed").textContent = "⏱️ 已耗时 0s";
+  elapsedTimer = setInterval(() => {
+    elapsedSeconds++;
+    $("progress-elapsed").textContent = `⏱️ 已耗时 ${elapsedSeconds}s`;
+  }, 1000);
+
+  pollTimer = setInterval(async () => {
+    try {
+      const job = await api("/api/jobs/" + jobId);
+      if (job.state === "queued") {
+        $("progress-status-text").textContent = `正在排队中 (第 ${job.queue_position || 1} 位)，等待前序任务完成…`;
+        setStepProgress(1);
+      } else if (job.state === "running") {
+        updateJobProgress(job);
+      } else if (job.state === "done") {
+        clearInterval(pollTimer);
+        clearInterval(elapsedTimer);
+        currentTrackedJobId = null;
+        $("hero-generating-view").hidden = true;
+
+        renderHeroStage(job);
+        refreshGallery();
+        showToast("✅ 任务已渲染完成！");
+        if (useRef) loadPresets("ours");
+        checkQueueStatus();
+
+        // 检查是否有下一个排队任务
+        setTimeout(async () => {
+          const nextQ = await api("/api/queue");
+          if (nextQ && nextQ.running) {
+            startTrackingJob(nextQ.running.id);
+          }
+        }, 2200);
+      } else if (job.state === "cancelled") {
+        clearInterval(pollTimer);
+        clearInterval(elapsedTimer);
+        currentTrackedJobId = null;
+        $("hero-generating-view").hidden = true;
+        $("hero-placeholder").style.display = "flex";
+        showToast("ℹ️ 任务已取消", "warn");
+        checkQueueStatus();
+      } else if (job.state === "error") {
+        clearInterval(pollTimer);
+        clearInterval(elapsedTimer);
+        currentTrackedJobId = null;
+        renderHeroStage(job);
+        showToast("❌ 任务出错: " + (job.error || "未知异常"), "error");
+        checkQueueStatus();
+      }
+    } catch (err) {
+      // 容忍网络轻微波动
+    }
+  }, 1600);
+}
+
+// 提交作业到队列
+async function executeJob(body, activeBtn, btnTextEl, btnIconEl, defaultText, defaultIcon) {
+  if (isSubmitting) return;
+  isSubmitting = true;
+
+  if (btnTextEl) btnTextEl.textContent = "正在提交排队…";
+
+  try {
+    const res = await api("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    const newJobId = res.id;
+    showToast("🎉 任务已成功加入生成队列！");
+
+    await checkQueueStatus();
+
+    // 若主舞台处于空闲等待状态，或者当前没有正在追踪的任务，立刻呈现新任务
+    if (!currentTrackedJobId) {
+      startTrackingJob(newJobId);
+    }
+  } catch (err) {
+    alert("提交任务失败：" + err.message);
+    showToast("提交失败: " + err.message, "error");
+  } finally {
+    isSubmitting = false;
+    checkQueueStatus();
+  }
+}
+
+// 中断正在运行的任务
+async function cancelCurrentRunningJob() {
+  if (!currentRunningJobId) return;
+  if (!confirm("确定要中断当前正在生成的任务吗？(将通知 ComfyUI 立即停机)")) return;
+  try {
+    await api("/api/jobs/cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: currentRunningJobId })
+    });
+    showToast("⏹️ 已向 ComfyUI 发送中断请求", "warn");
+    setTimeout(checkQueueStatus, 600);
+  } catch (err) {
+    alert("中断任务失败: " + err.message);
+  }
+}
+
+// 取消排队中的任务
+async function cancelQueuedJob(jid) {
+  try {
+    await api("/api/jobs/" + jid + "/cancel", { method: "POST" });
+    showToast("✖ 已从排队队列移出", "warn");
+    setTimeout(checkQueueStatus, 400);
+  } catch (err) {
+    alert("取消失败: " + err.message);
+  }
+}
+window.cancelQueuedJob = cancelQueuedJob;
+
+// 清空排队列表
+async function clearQueueJobs() {
+  if (!confirm("确定要清空全部排队等待的任务吗？")) return;
+  try {
+    await api("/api/queue/clear", { method: "POST" });
+    showToast("🗑️ 已清空排队任务", "warn");
+    setTimeout(checkQueueStatus, 400);
+  } catch (err) {
+    alert("清空队列失败: " + err.message);
+  }
+}
+
+// 刷新与页面重载自恢复机制 (Page Refresh Reconnect)
+async function initQueueSystem() {
+  try {
+    const q = await api("/api/queue");
+    await checkQueueStatus();
+
+    // 1. 如果有任务正在运行，立刻无缝接管并呈现
+    if (q && q.running) {
+      startTrackingJob(q.running.id);
+      const started = q.running.started_at || q.running.created_at;
+      if (started) {
+        elapsedSeconds = Math.max(0, Math.floor(Date.now() / 1000 - started));
+        $("progress-elapsed").textContent = `⏱️ 已耗时 ${elapsedSeconds}s`;
+      }
+    } else if (q && q.recent && q.recent.length > 0 && q.recent[0].state === "done") {
+      // 2. 如果当前空闲但最近刚生成完任务，在主展示台平滑还原上一张成片
+      renderHeroStage(q.recent[0]);
+    }
+  } catch (err) {
+    console.warn("初始化队列失败:", err);
+  }
+
+  // 绑定抽屉与操作按钮
+  $("btn-toggle-queue").onclick = () => {
+    isQueueDrawerOpen = !isQueueDrawerOpen;
+    $("queue-drawer").hidden = !isQueueDrawerOpen;
+    $("queue-arrow").textContent = isQueueDrawerOpen ? "▲" : "▼";
+  };
+  $("btn-cancel-running").onclick = cancelCurrentRunningJob;
+  $("btn-clear-queue").onclick = clearQueueJobs;
+
+  if (queuePollTimer) clearInterval(queuePollTimer);
+  queuePollTimer = setInterval(checkQueueStatus, 2000);
+}
+
 async function triggerGeneration() {
-  if (isGenerating) return;
+  if (isSubmitting) return;
   if (useRef && !selectedRef) {
     alert("请先选择或上传一张参考图！");
     return;
@@ -1439,70 +2513,7 @@ async function triggerGeneration() {
     ref_height: useRef && refNaturalDims ? refNaturalDims.h : 0,
   };
 
-  // UI 进入生成状态：
-  // 1) 立即清空并隐藏上一任务的图片/视频，彻底不展示旧图
-  // 2) 立即隐藏上一任务的元信息卡片
-  // 3) 激活干净的动态创作中画卷
-  isGenerating = true;
-  $("go-btn").disabled = true;
-  $("go-text").textContent = "正在计算生成中…";
-  $("go-icon").innerHTML = '<div class="spinner"></div>';
-
-  $("hero-placeholder").style.display = "none";
-  $("hero-result-view").hidden = true;
-  $("hero-result-view").innerHTML = ""; // 彻底清空上一任务的 DOM 图片/视频
-  $("hero-info").hidden = true;          // 隐藏旧任务的提示词与下载按钮
-  $("hero-generating-view").hidden = false; // 呈现全新的创作舞台
-  $("progress-status-text").textContent = "正在提交任务到 ComfyUI…";
-  $("progress-telemetry").textContent = lastGpuTelemetryText;
-  setStepProgress(1);
-
-  elapsedSeconds = 0;
-  $("progress-elapsed").textContent = "⏱️ 已耗时 0s";
-  elapsedTimer = setInterval(() => {
-    elapsedSeconds++;
-    $("progress-elapsed").textContent = `⏱️ 已耗时 ${elapsedSeconds}s`;
-  }, 1000);
-
-  try {
-    const { id } = await api("/api/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-
-    pollTimer = setInterval(async () => {
-      try {
-        const job = await api("/api/jobs/" + id);
-        updateJobProgress(job);
-
-        if (job.state !== "running") {
-          clearInterval(pollTimer);
-          clearInterval(elapsedTimer);
-          isGenerating = false;
-          $("go-btn").disabled = false;
-          $("go-text").textContent = "开始生成";
-          $("go-icon").textContent = "🚀";
-          $("hero-generating-view").hidden = true;
-
-          renderHeroStage(job);
-          refreshGallery();
-          if (useRef) loadPresets("ours");
-        }
-      } catch (err) {
-        // 瞬间网络抖动忽略
-      }
-    }, 1800);
-  } catch (err) {
-    alert("提交任务失败：" + err.message);
-    isGenerating = false;
-    clearInterval(elapsedTimer);
-    $("go-btn").disabled = false;
-    $("go-text").textContent = "开始生成";
-    $("go-icon").textContent = "🚀";
-    $("hero-generating-view").hidden = true;
-    $("hero-placeholder").style.display = "flex";
-  }
+  executeJob(body, $("go-btn"), $("go-text"), $("go-icon"), "开始生成", "🚀");
 }
 
 function setStepProgress(stepNum) {
@@ -1986,9 +2997,689 @@ $("btn-test-settings").onclick = async () => {
   }
 };
 
+// ==================== 二次元角色工坊 (Danbooru & LoRA Studio) ====================
+let currentWorkshopTab = "standard";
+let animeCharSubmode = "danbooru";
+let selectedAnimeChar = null;
+let selectedAnimeStyle = null;
+
+// 1. Danbooru 人气角色库
+const ANIME_CHARACTERS = [
+  // 崩坏：星穹铁道
+  {
+    id: "firefly",
+    name: "流萤 (Firefly)",
+    franchise: "崩坏：星穹铁道",
+    avatar: "萤",
+    color: "#10b981",
+    tags: "firefly (honkai: star rail), black hairband, hair ornament, gradient hair, green eyes, long hair, white dress",
+    desc: "格拉默铁骑 / 萨姆操纵者",
+  },
+  {
+    id: "acheron",
+    name: "黄泉 (Acheron)",
+    franchise: "崩坏：星穹铁道",
+    avatar: "泉",
+    color: "#a855f7",
+    tags: "acheron (honkai: star rail), purple hair, red eyes, ponytail, katana, single earring, tattoo",
+    desc: "巡海游侠 / 自灭者",
+  },
+  {
+    id: "march7th",
+    name: "三月七 (March 7th)",
+    franchise: "崩坏：星穹铁道",
+    avatar: "三",
+    color: "#f472b6",
+    tags: "march 7th (honkai: star rail), short hair, pink hair, blue eyes, camera, hairclip, choker",
+    desc: "星穹列车活力少女",
+  },
+  {
+    id: "kafka",
+    name: "卡芙卡 (Kafka)",
+    franchise: "崩坏：星穹铁道",
+    avatar: "卡",
+    color: "#d946ef",
+    tags: "kafka (honkai: star rail), purple hair, sunglasses on head, red eyes, ponytail, coat",
+    desc: "星核猎手核心",
+  },
+  {
+    id: "sparkle",
+    name: "花火 (Sparkle)",
+    franchise: "崩坏：星穹铁道",
+    avatar: "火",
+    color: "#ef4444",
+    tags: "sparkle (honkai: star rail), twintails, black hair, red eyes, fox mask on head, hair ornament",
+    desc: "假面愚者 / 欢愉信徒",
+  },
+  {
+    id: "robin",
+    name: "知更鸟 (Robin)",
+    franchise: "崩坏：星穹铁道",
+    avatar: "鸟",
+    color: "#60a5fa",
+    tags: "robin (honkai: star rail), white hair, halo, wing hair ornament, blue eyes, dress",
+    desc: "匹诺康尼天籁巨星",
+  },
+
+  // 原神
+  {
+    id: "raiden",
+    name: "雷电将军 (Raiden Shogun)",
+    franchise: "原神",
+    avatar: "雷",
+    color: "#9333ea",
+    tags: "raiden shogun (genshin impact), purple hair, braid, purple eyes, hairpin, kimono, single glove",
+    desc: "稻妻鸣神 / 永恒之神",
+  },
+  {
+    id: "furina",
+    name: "芙宁娜 (Furina)",
+    franchise: "原神",
+    avatar: "芙",
+    color: "#0284c7",
+    tags: "furina (genshin impact), top hat, white hair, ahoge, blue vest, multicolored hair, mismatched eyes",
+    desc: "枫丹大明星 / 水神眷属",
+  },
+  {
+    id: "nahida",
+    name: "纳西妲 (Nahida)",
+    franchise: "原神",
+    avatar: "草",
+    color: "#22c55e",
+    tags: "nahida (genshin impact), white hair, side ponytail, pointed ears, green eyes, clover pupils, dress",
+    desc: "须弥小吉祥草王",
+  },
+  {
+    id: "shenhe",
+    name: "申鹤 (Shenhe)",
+    franchise: "原神",
+    avatar: "鹤",
+    color: "#94a3b8",
+    tags: "shenhe (genshin impact), white hair, braid, blue eyes, hair ornament, bodysuit, red ropes",
+    desc: "留云借风真君弟子",
+  },
+  {
+    id: "hutao",
+    name: "胡桃 (Hu Tao)",
+    franchise: "原神",
+    avatar: "桃",
+    color: "#f97316",
+    tags: "hu tao (genshin impact), porkpie hat, twin tails, brown hair, red eyes, flower pupils, coat",
+    desc: "往生堂第七十七代堂主",
+  },
+  {
+    id: "yaemiko",
+    name: "八重神子 (Yae Miko)",
+    franchise: "原神",
+    avatar: "巫",
+    color: "#e11d48",
+    tags: "yae miko (genshin impact), fox ears, pink hair, purple eyes, miko attire, earrings",
+    desc: "鸣神大社宫司",
+  },
+
+  // 绝区零
+  {
+    id: "ellen",
+    name: "艾莲·乔 (Ellen Joe)",
+    franchise: "绝区零",
+    avatar: "鲨",
+    color: "#e11d48",
+    tags: "ellen joe (zenless zone zero), shark tail, shark fin, maid, maid apron, black hair, red eyes, lollipop",
+    desc: "维多利亚家政 / 鲨鱼女仆",
+  },
+  {
+    id: "zhuyuan",
+    name: "朱鸢 (Zhu Yuan)",
+    franchise: "绝区零",
+    avatar: "鸢",
+    color: "#3b82f6",
+    tags: "zhu yuan (zenless zone zero), blue hair, ponytail, police uniform, brown eyes, gloves",
+    desc: "刑侦特勤组队长",
+  },
+  {
+    id: "janedoe",
+    name: "简·杜 (Jane Doe)",
+    franchise: "绝区零",
+    avatar: "鼠",
+    color: "#eab308",
+    tags: "jane doe (zenless zone zero), rat ears, rat tail, grey hair, side ponytail, choker, red eyes",
+    desc: "犯罪资源顾问",
+  },
+
+  // 鸣潮
+  {
+    id: "jinhsi",
+    name: "今汐 (Jinhsi)",
+    franchise: "鸣潮",
+    avatar: "汐",
+    color: "#7dd3fc",
+    tags: "jinhsi (wuthering waves), white hair, blue eyes, chinese clothes, hairpin, bare shoulders",
+    desc: "乘霄令尹 / 岁主同契者",
+  },
+  {
+    id: "changli",
+    name: "长离 (Changli)",
+    franchise: "鸣潮",
+    avatar: "离",
+    color: "#dc2626",
+    tags: "changli (wuthering waves), red hair, gradient hair, feather hair ornament, red eyes, hanfu",
+    desc: "今州令尹参事 / 离火照物",
+  },
+  {
+    id: "shorekeeper",
+    name: "守岸人 (The Shorekeeper)",
+    franchise: "鸣潮",
+    avatar: "岸",
+    color: "#6366f1",
+    tags: "the shorekeeper (wuthering waves), silver hair, butterfly wings, hair ornament, blue dress, glowing ribbons",
+    desc: "黑海岸核心守护者",
+  },
+
+  // 热门动画
+  {
+    id: "frieren",
+    name: "芙莉莲 (Frieren)",
+    franchise: "热门动画",
+    avatar: "莲",
+    color: "#cbd5e1",
+    tags: "frieren, elf, white hair, twintails, green eyes, elf ears, earrings, capelet, wand",
+    body_tags: "frieren, elf, white hair, twintails, green eyes, elf ears, earrings",
+    outfit_tags: "capelet, wand, striped shirt",
+    neg_outfit: "capelet, wand, staff, robe, adventuring clothes",
+    desc: "葬送的芙莉莲 / 千年魔法使",
+  },
+  {
+    id: "bocchi",
+    name: "后藤一里 (Gotou Hitori)",
+    franchise: "热门动画",
+    avatar: "波",
+    color: "#ec4899",
+    tags: "gotou hitori, pink hair, blue hair ornament, cube hair ornament, track jacket, pink track jacket, blue eyes",
+    desc: "孤独摇滚！ / 波奇酱",
+  },
+  {
+    id: "marin",
+    name: "喜多川海梦 (Marin)",
+    franchise: "热门动画",
+    avatar: "海",
+    color: "#f59e0b",
+    tags: "kitagawa marin, blonde hair, orange highlights, pink eyes, choker, multiple earrings, pierced ears, school uniform",
+    desc: "更衣人偶坠入爱河",
+  },
+  {
+    id: "lucy",
+    name: "露西 (Lucy)",
+    franchise: "热门动画",
+    avatar: "露",
+    color: "#06b6d4",
+    tags: "lucy (cyberpunk), multi-colored hair, short hair, eyeliner, cropped jacket, crop top",
+    desc: "赛博朋克：边缘行者",
+  },
+  {
+    id: "rebecca",
+    name: "丽贝卡 (Rebecca)",
+    franchise: "热门动画",
+    avatar: "丽",
+    color: "#10b981",
+    tags: "rebecca (cyberpunk), green hair, twintails, neck tattoo, oversized coat, red eyes",
+    desc: "赛博朋克：边缘行者 / 双枪狂徒",
+  },
+  {
+    id: "reimu",
+    name: "博丽灵梦 (Reimu)",
+    franchise: "热门动画",
+    avatar: "灵",
+    color: "#e11d48",
+    tags: "hakurei reimu, shrine maiden, red hair bow, hair tubes, miko, detached sleeves, brown hair",
+    desc: "东方Project / 博丽神社巫女",
+  },
+];
+
+// 2. 二次元画风与画师质感注入
+const ANIME_STYLES = [
+  {
+    id: "none",
+    name: "纯净动漫",
+    sub: "底模纯净表现",
+    tags: "",
+  },
+  {
+    id: "makoto_shinkai",
+    name: "新海诚光影",
+    sub: "宏大透视 · 丁达尔光 · 澄澈天空",
+    tags: "by makoto shinkai, anime sky, volumetric lighting, lens flare, glowing particles, depth of field",
+  },
+  {
+    id: "kyoto_animation",
+    name: "京阿尼清透",
+    sub: "温润光感 · 细腻眼神 · 柔和赛璐珞",
+    tags: "kyoto animation style, soft lighting, expressive eyes, delicate shading, clean lineart",
+  },
+  {
+    id: "watercolor",
+    name: "水彩插画",
+    sub: "手绘纸张纹理 · 水渍飞溅",
+    tags: "watercolor, traditional media, ink splashes, paint splatters, delicate lineart, textured paper",
+  },
+  {
+    id: "light_novel",
+    name: "轻小说封面",
+    sub: "高饱和色彩 · 精细厚涂 · 商业插画",
+    tags: "light novel cover, vibrant colors, dynamic composition, dramatic lighting, detailed background",
+  },
+  {
+    id: "cyber_neon",
+    name: "赛博霓虹",
+    sub: "暗黑都市 · 雨夜倒影 · 霓虹光晕",
+    tags: "cyberpunk aesthetic, gritty city, neon lights, rainy street, reflective puddles, high contrast",
+  },
+  {
+    id: "dark_gothic",
+    name: "哥特梦幻",
+    sub: "华丽蕾丝 · 暗黑童话 · 悬疑神秘",
+    tags: "gothic lolita, dark fantasy, intricate lace, rose petals, moonlight, moody lighting",
+  },
+];
+
+// 3. 常见二创灵感短语
+const ANIME_INSPIRATIONS = [
+  "在冬日漫天飘雪的咖啡馆窗边，捧着热可可，回眸温柔微笑",
+  "夏日祭的璀璨夜空下，穿着可爱金鱼浴衣，拿着捞鱼袋与苹果糖",
+  "黄昏放学后的空无一人走廊，微风轻抚窗帘，发丝随风飘散",
+  "东京深夜的雨中霓虹街头，穿着黑色机车风衣，撑着透明雨伞",
+  "海边夕阳西下的落日余晖，赤足走在浪花泡沫间，裙角微湿",
+  "午后阳光洒落的寂静图书馆，靠着书架专心翻阅古老书本",
+  "居家慵懒周末，穿着宽松大号连帽衫，抱膝坐在地毯上打游戏",
+  "清晨森林薄雾与阳光晨曦，周围环绕着发光的自然灵蝶",
+];
+
+const ANIME_QUALITY_POS = "masterpiece, best quality, newest, absurdres, highres";
+const ANIME_DEFAULT_NEG = "text, watermark, worst quality, old, early, low quality, lowres, signature, username, logo, bad hands, mutated hands, mammal, anthro, furry, ambiguous form, feral, semi-anthro";
+
+// 工坊顶栏切换
+$("tab-standard").onclick = () => {
+  currentWorkshopTab = "standard";
+  $("tab-standard").className = "nav-page-btn active standard-tab";
+  $("tab-anime").className = "nav-page-btn anime-tab";
+  $("panel-standard").hidden = false;
+  $("panel-anime").hidden = true;
+};
+
+$("tab-anime").onclick = () => {
+  currentWorkshopTab = "anime";
+  $("tab-anime").className = "nav-page-btn active anime-tab";
+  $("tab-standard").className = "nav-page-btn standard-tab";
+  $("panel-anime").hidden = false;
+  $("panel-standard").hidden = true;
+  loadLocalModels();
+};
+
+// 角色模式切换
+const subtabDan = $("btn-subtab-danbooru");
+const subtabLora = $("btn-subtab-lora");
+const subtabCust = $("btn-subtab-custom");
+
+function setCharSubmode(mode) {
+  animeCharSubmode = mode;
+  subtabDan.classList.toggle("active", mode === "danbooru");
+  subtabLora.classList.toggle("active", mode === "lora");
+  subtabCust.classList.toggle("active", mode === "custom");
+
+  $("anime-box-danbooru").hidden = mode !== "danbooru";
+  $("anime-box-lora").hidden = mode !== "lora";
+  $("anime-box-custom").hidden = mode !== "custom";
+
+  $("anime-char-status").textContent = mode === "danbooru" ? "Danbooru 免LoRA" : mode === "lora" ? "外挂 LoRA 模式" : "自定义 Tag 模式";
+}
+subtabDan.onclick = () => setCharSubmode("danbooru");
+subtabLora.onclick = () => setCharSubmode("lora");
+subtabCust.onclick = () => setCharSubmode("custom");
+
+// 渲染角色列表
+function renderAnimeCharacters(filter = "all", keyword = "") {
+  const container = $("anime-char-grid");
+  const kw = keyword.trim().toLowerCase();
+  const list = ANIME_CHARACTERS.filter(c => {
+    const matchFilter = filter === "all" || c.franchise === filter;
+    const matchKw = !kw || c.name.toLowerCase().includes(kw) || c.franchise.toLowerCase().includes(kw) || c.tags.toLowerCase().includes(kw);
+    return matchFilter && matchKw;
+  });
+
+  if (!list.length) {
+    container.innerHTML = '<p class="hint" style="grid-column:1/-1;text-align:center;padding:1.5rem">未找到匹配的角色，请尝试搜索其他关键字或切换分类。</p>';
+    return;
+  }
+
+  container.innerHTML = list.map(c => {
+    const isSel = selectedAnimeChar && selectedAnimeChar.id === c.id;
+    return `
+      <div class="char-card ${isSel ? 'selected' : ''}" data-id="${c.id}" title="${esc(c.desc)}&#10;${esc(c.tags)}">
+        <div class="char-avatar" style="background:${c.color}">${c.avatar}</div>
+        <div class="char-name">${esc(c.name)}</div>
+        <div class="char-franchise">${esc(c.franchise)}</div>
+      </div>
+    `;
+  }).join("");
+
+  container.querySelectorAll(".char-card").forEach(el => {
+    el.onclick = () => {
+      const id = el.dataset.id;
+      const char = ANIME_CHARACTERS.find(x => x.id === id);
+      selectAnimeCharacter(char);
+    };
+  });
+}
+
+function selectAnimeCharacter(char) {
+  selectedAnimeChar = char;
+  document.querySelectorAll("#anime-char-grid .char-card").forEach(c => {
+    c.classList.toggle("selected", c.dataset.id === char.id);
+  });
+  $("anime-selected-banner").hidden = false;
+  $("anime-selected-name").textContent = `已锁定角色：${char.name} (${char.franchise})`;
+  $("anime-selected-tags").textContent = char.tags;
+}
+
+$("anime-btn-clear-char").onclick = () => {
+  selectedAnimeChar = null;
+  document.querySelectorAll("#anime-char-grid .char-card").forEach(c => c.classList.remove("selected"));
+  $("anime-selected-banner").hidden = true;
+};
+
+// 角色筛选与搜索监听
+document.querySelectorAll("#anime-char-filters .char-filter-pill").forEach(pill => {
+  pill.onclick = () => {
+    document.querySelectorAll("#anime-char-filters .char-filter-pill").forEach(p => p.classList.remove("active"));
+    pill.classList.add("active");
+    renderAnimeCharacters(pill.dataset.franchise, $("anime-char-search").value);
+  };
+});
+
+$("anime-char-search").oninput = (e) => {
+  const curPill = document.querySelector("#anime-char-filters .char-filter-pill.active");
+  const f = curPill ? curPill.dataset.franchise : "all";
+  renderAnimeCharacters(f, e.target.value);
+};
+
+// 渲染画风卡片
+function renderAnimeStyles() {
+  const container = $("anime-style-grid");
+  container.innerHTML = ANIME_STYLES.map((st, idx) => `
+    <div class="style-card-btn ${idx === 0 ? 'active' : ''}" data-id="${st.id}">
+      <div class="style-card-title">${esc(st.name)}</div>
+      <div class="style-card-sub">${esc(st.sub)}</div>
+    </div>
+  `).join("");
+
+  selectedAnimeStyle = ANIME_STYLES[0];
+  container.querySelectorAll(".style-card-btn").forEach(el => {
+    el.onclick = () => {
+      container.querySelectorAll(".style-card-btn").forEach(b => b.classList.remove("active"));
+      el.classList.add("active");
+      selectedAnimeStyle = ANIME_STYLES.find(s => s.id === el.dataset.id);
+    };
+  });
+}
+
+// 渲染二创灵感气泡
+function renderAnimeInspirations() {
+  const pool = $("anime-inspiration-tags");
+  pool.innerHTML = ANIME_INSPIRATIONS.map(text => `
+    <span class="tag-chip anime-insp-chip" data-text="${esc(text)}">${esc(text.split("，")[0])}</span>
+  `).join("");
+
+  pool.querySelectorAll(".anime-insp-chip").forEach(chip => {
+    chip.onclick = () => {
+      const cur = $("anime-prompt-zh").value.trim();
+      const txt = chip.dataset.text;
+      $("anime-prompt-zh").value = cur ? `${cur}，${txt}` : txt;
+      chip.style.borderColor = "#ec4899";
+      setTimeout(() => chip.style.borderColor = "var(--border)", 600);
+    };
+  });
+}
+
+// 编译为 Danbooru Tags 逻辑
+$("anime-btn-compile").onclick = async () => {
+  const zh = $("anime-prompt-zh").value.trim();
+  const btn = $("anime-btn-compile");
+  const txt = $("anime-compile-text");
+  const st = $("anime-compile-status");
+
+  btn.disabled = true;
+  txt.textContent = "AI 正在编译 Danbooru Tags…";
+  st.textContent = "正在调用 LLM 编译…";
+  st.className = "hint";
+
+  try {
+    const isFreeOutfit = $("anime-custom-outfit-toggle") ? $("anime-custom-outfit-toggle").checked : true;
+    let charTags = "";
+    if (animeCharSubmode === "danbooru" && selectedAnimeChar) {
+      charTags = (isFreeOutfit && selectedAnimeChar.body_tags) ? selectedAnimeChar.body_tags : selectedAnimeChar.tags;
+      if (isFreeOutfit && selectedAnimeChar.neg_outfit) {
+        let neg = $("anime-negative-prompt").value.trim();
+        if (!neg.includes(selectedAnimeChar.neg_outfit)) {
+          $("anime-negative-prompt").value = neg ? `${neg}, ${selectedAnimeChar.neg_outfit}` : selectedAnimeChar.neg_outfit;
+        }
+      }
+    } else if (animeCharSubmode === "lora") {
+      const trigger = $("anime-lora-trigger").value.trim();
+      if (trigger) charTags = trigger;
+    } else if (animeCharSubmode === "custom") {
+      charTags = $("anime-custom-tags").value.trim();
+    }
+
+    const styleTags = selectedAnimeStyle ? selectedAnimeStyle.tags : "";
+
+    let compiledConcept = "";
+    if (zh) {
+      const res = await api("/api/prompt/optimize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: zh,
+          style: "danbooru",
+          mode: "image"
+        })
+      });
+      if (res.ok && res.prompt_en && !/[\u3400-\u9fff]/.test(res.prompt_en)) {
+        compiledConcept = res.prompt_en;
+      } else {
+        st.textContent = "❌ 编译失败：" + (res.error || "未能转写为英文");
+        st.className = "hint warn";
+        alert("⚠️ 提示词翻译/编译未成功：" + (res.error || "未能获取英文标签") +
+              "\n\n请先在右上角【⚙️ 设置】中测试 LLM 连接，或直接在英文框中填写英文标签。");
+        return;
+      }
+    }
+
+    const pieces = [ANIME_QUALITY_POS];
+    if (styleTags) pieces.push(styleTags);
+    if (charTags) pieces.push(charTags);
+    if (compiledConcept) pieces.push(compiledConcept);
+
+    const finalTags = pieces.filter(Boolean).join(", ");
+    $("anime-prompt-en").value = finalTags;
+    st.textContent = "✅ 编译完成！已转为精准 Danbooru 标签。";
+    st.className = "hint ok";
+  } catch (err) {
+    st.textContent = "❌ 编译失败：" + err.message;
+    st.className = "hint warn";
+  } finally {
+    btn.disabled = false;
+    txt.textContent = "编译为 Danbooru 提示词";
+  }
+};
+
+$("anime-btn-clear-en").onclick = () => {
+  $("anime-prompt-en").value = "";
+};
+
+// 触发二次元生成
+async function triggerAnimeGeneration() {
+  if (isSubmitting) return;
+
+  const promptZh = $("anime-prompt-zh").value.trim();
+  let promptEn = $("anime-prompt-en").value.trim();
+
+  const isFreeOutfit = $("anime-custom-outfit-toggle") ? $("anime-custom-outfit-toggle").checked : true;
+
+  let charTags = "";
+  if (animeCharSubmode === "danbooru" && selectedAnimeChar) {
+    charTags = (isFreeOutfit && selectedAnimeChar.body_tags) ? selectedAnimeChar.body_tags : selectedAnimeChar.tags;
+  } else if (animeCharSubmode === "lora") {
+    const trigger = $("anime-lora-trigger").value.trim();
+    if (trigger) charTags = trigger;
+  } else if (animeCharSubmode === "custom") {
+    charTags = $("anime-custom-tags").value.trim();
+  }
+
+  if (!promptZh && !promptEn && !charTags) {
+    alert("请先选择角色或输入二创场景描述！");
+    return;
+  }
+
+  // 核心改进：若用户未手动点击编译，但输入了中文二创脑洞，在提交前自动调用 AI 编译为 Danbooru 标签
+  const hasChinese = /[\u3400-\u9fff]/.test(promptZh) || /[\u3400-\u9fff]/.test(promptEn);
+  if (hasChinese && !promptEn) {
+    $("anime-compile-status").textContent = "正在调用 AI 自动编译 Danbooru 提示词…";
+    $("anime-compile-status").className = "hint";
+    try {
+      const res = await api("/api/prompt/optimize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: promptZh,
+          style: "danbooru",
+          mode: "image"
+        })
+      });
+      if (res.ok && res.prompt_en && !/[\u3400-\u9fff]/.test(res.prompt_en)) {
+        const styleTags = selectedAnimeStyle ? selectedAnimeStyle.tags : "";
+        const pieces = [ANIME_QUALITY_POS];
+        if (styleTags) pieces.push(styleTags);
+        if (charTags) pieces.push(charTags);
+        pieces.push(res.prompt_en);
+        promptEn = pieces.filter(Boolean).join(", ");
+        $("anime-prompt-en").value = promptEn;
+        $("anime-compile-status").textContent = "✅ 已自动编译为精准 Danbooru 标签！";
+        $("anime-compile-status").className = "hint ok";
+      } else {
+        alert("⚠️ 提示词翻译/编译未成功：" + (res.error || "LLM 服务未响应") +
+              "\n\n原因：二次元与 SDXL 模型无法识别中文，生搬中文会导致衣服与动作丢失、画面崩坏。\n建议在右上角【⚙️ 设置】中测试 LLM 连接，或直接在英文框中填写英文标签。");
+        return;
+      }
+    } catch (err) {
+      alert("⚠️ 提示词编译请求异常：" + err.message + "\n请检查网络或 LLM 配置。");
+      return;
+    }
+  } else if (!promptEn) {
+    const styleTags = selectedAnimeStyle ? selectedAnimeStyle.tags : "";
+    const pieces = [ANIME_QUALITY_POS];
+    if (styleTags) pieces.push(styleTags);
+    if (charTags) pieces.push(charTags);
+    if (promptZh) pieces.push(promptZh);
+    promptEn = pieces.filter(Boolean).join(", ");
+  }
+
+  // 如果开启了自由换装模式，自动向负面词中追加角色的原版服饰/道具（如 capelet, wand, staff）
+  let negPrompt = $("anime-negative-prompt").value.trim();
+  if (isFreeOutfit && selectedAnimeChar && selectedAnimeChar.neg_outfit) {
+    if (!negPrompt.includes(selectedAnimeChar.neg_outfit)) {
+      negPrompt = negPrompt ? `${negPrompt}, ${selectedAnimeChar.neg_outfit}` : selectedAnimeChar.neg_outfit;
+    }
+  }
+
+  const [w, h] = $("anime-size-select").value.split("x").map(Number);
+  const ckpt = $("anime-checkpoint-select").value;
+  const lora = animeCharSubmode === "lora" ? $("anime-lora-select").value : null;
+  const loraStrength = +$("anime-lora-strength").value || 0.85;
+
+  const body = {
+    mode: "image",
+    prompt: promptZh || promptEn,
+    prompt_en: promptEn,
+    style: "danbooru",
+    negative_prompt: negPrompt,
+    width: w,
+    height: h,
+    steps: +$("anime-steps").value || 28,
+    cfg: +$("anime-cfg").value || 7.5,
+    sampler: $("anime-sampler").value || "euler",
+    scheduler: $("anime-scheduler").value || "normal",
+    checkpoint: ckpt || null,
+    lora_name: lora || null,
+    lora_strength: loraStrength,
+    seed: +$("anime-seed").value || 0,
+    denoise: 1.0,
+    strength: 1.0,
+    ref: null,
+  };
+
+  executeJob(body, $("anime-go-btn"), $("anime-go-text"), $("anime-go-icon"), "开始生成二次元二创作品", "🌸");
+}
+
+// 负面提示词初始化与 NSFW 开关
+function updateAnimeNegativePrompt() {
+  const isFilter = $("anime-nsfw-filter").checked;
+  const neg = isFilter ? `${ANIME_DEFAULT_NEG}, nsfw` : ANIME_DEFAULT_NEG;
+  $("anime-negative-prompt").value = neg;
+}
+$("anime-nsfw-filter").onchange = updateAnimeNegativePrompt;
+
+// 种子与滑块监听
+$("anime-btn-rand-seed").onclick = () => $("anime-seed").value = Math.floor(Math.random() * 2147483647);
+$("anime-btn-zero-seed").onclick = () => $("anime-seed").value = 0;
+$("anime-lora-strength").oninput = () => {
+  $("anime-lora-strength-val").textContent = (+ $("anime-lora-strength").value).toFixed(2);
+};
+
+// 动态获取本地 Checkpoints 和 LoRAs
+async function loadLocalModels() {
+  try {
+    const res = await api("/api/models");
+    const ckpts = res.checkpoints || [];
+    const loras = res.loras || [];
+    const current = res.current_checkpoint || "";
+
+    const ckptSelect = $("anime-checkpoint-select");
+    if (ckpts.length) {
+      ckptSelect.innerHTML = ckpts.map(c => {
+        const isAnime = /wai|illustrious|noob|anime|danbooru/i.test(c);
+        const label = c + (isAnime ? " ⭐ (推荐二次元底模)" : "");
+        const isSel = c === current || (isAnime && !current.includes("wai"));
+        return `<option value="${esc(c)}" ${isSel ? 'selected' : ''}>${esc(label)}</option>`;
+      }).join("");
+    } else {
+      ckptSelect.innerHTML = `<option value="">未找到 Checkpoint 模型</option>`;
+    }
+
+    const loraSelect = $("anime-lora-select");
+    if (loras.length) {
+      loraSelect.innerHTML = `<option value="">-- 请选择 LoRA 模型 --</option>` +
+        loras.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("");
+      $("anime-lora-hint").innerHTML = `✅ 已从本地检测到 <b>${loras.length}</b> 个 LoRA 模型，可随时选用。`;
+    } else {
+      loraSelect.innerHTML = `<option value="">(本地 models/loras 目录下暂无模型)</option>`;
+      $("anime-lora-hint").innerHTML = `💡 检测到本地暂无 LoRA 文件。可直接使用「Danbooru 角色库」免 LoRA 模式，或将 <code>.safetensors</code> 放入 <code>${esc(res.loras_dir || 'models/loras/')}</code> 目录刷新选用。`;
+    }
+  } catch (err) {
+    console.warn("加载本地模型失败:", err);
+  }
+}
+
 // 页面初始化
+renderAnimeCharacters();
+renderAnimeStyles();
+renderAnimeInspirations();
+updateAnimeNegativePrompt();
+loadLocalModels();
+
+// 页面常规初始化
 checkSystemStatus();
 refreshGallery();
+initQueueSystem();
 </script>
+<div class="toast-container" id="toast-container"></div>
 </body>
 </html>
