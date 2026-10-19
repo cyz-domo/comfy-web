@@ -1,0 +1,18 @@
+# User sensitive config & credentials
+config.json
+.env
+
+# Generated media outputs & caches
+outputs/
+__pycache__/
+*.pyc
+
+# Logs & temp files
+*.log
+*.bak
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

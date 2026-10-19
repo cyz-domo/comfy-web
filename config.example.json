@@ -1,0 +1,13 @@
+{
+  "comfy_url": "http://127.0.0.1:8188",
+  "comfy_dir": "E:/ComfyUI",
+  "image_checkpoint": "sd_xl_base_1.0.safetensors",
+  "video_checkpoint": "ltx-video-2b-v0.9.5.safetensors",
+  "video_text_encoder": "t5xxl_fp8_e4m3fn_scaled.safetensors",
+  "llm": {
+    "enabled": true,
+    "base_url": "https://api.openai.com/v1",
+    "api_key": "",
+    "model": "gpt-4o-mini"
+  }
+}

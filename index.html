@@ -1,0 +1,1763 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ComfyWeb Studio · AI 文生图 / 文生视频工作台</title>
+<style>
+  :root {
+    --bg: #090d16;
+    --card-bg: #111827;
+    --card-hover: #162032;
+    --border: #1f293d;
+    --border-light: #2d3b55;
+    --fg: #f3f4f6;
+    --fg-muted: #94a3b8;
+    --primary: #10b981;
+    --primary-hover: #059669;
+    --primary-glow: rgba(16, 185, 129, 0.25);
+    --accent: #06b6d4;
+    --accent-glow: rgba(6, 182, 212, 0.2);
+    --purple: #8b5cf6;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --radius: 12px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  header {
+    background: rgba(17, 24, 39, 0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.65rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 0.75rem; }
+  .brand-logo {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1.15rem; color: #fff;
+    box-shadow: 0 0 14px var(--primary-glow);
+  }
+  .brand-title { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em; }
+  .brand-badge {
+    font-size: 0.68rem; padding: 0.15rem 0.5rem; border-radius: 999px;
+    background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25);
+  }
+
+  /* Real-Time Hardware Telemetry Monitor Bar */
+  .monitor-bar {
+    display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;
+  }
+  .monitor-pill {
+    background: #141c2c;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.32rem 0.6rem;
+    font-size: 0.73rem;
+    color: var(--fg);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    transition: all 0.2s;
+  }
+  .monitor-pill:hover { border-color: var(--border-light); background: #192338; }
+  .monitor-pill.highlight {
+    border-color: rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.08);
+  }
+  .pill-icon { font-size: 0.85rem; }
+  .pill-label { font-size: 0.66rem; color: var(--fg-muted); text-transform: uppercase; font-weight: 600; }
+  .pill-val { font-weight: 600; font-family: ui-monospace, Consolas, monospace; color: #f1f5f9; }
+  .pill-sub { font-size: 0.68rem; color: #38bdf8; font-weight: 500; }
+  .pill-bar {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 2.5px; background: rgba(255,255,255,0.06);
+  }
+  .pill-fill {
+    height: 100%; background: var(--primary); transition: width 0.35s ease, background 0.3s;
+  }
+  .pill-fill.warn { background: var(--warning); }
+  .pill-fill.danger { background: var(--danger); }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 0.45rem;
+    font-size: 0.75rem; padding: 0.32rem 0.65rem; border-radius: 8px;
+    background: #141c2c; border: 1px solid var(--border); color: var(--fg-muted);
+    cursor: default; transition: all 0.2s;
+  }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #64748b; }
+  .status-dot.green { background: #10b981; box-shadow: 0 0 8px #10b981; }
+  .status-dot.red { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+  .btn-ghost {
+    background: transparent; border: 1px solid var(--border); color: var(--fg);
+    padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; cursor: pointer;
+    display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s;
+  }
+  .btn-ghost:hover { background: #1e293b; border-color: var(--border-light); }
+
+  /* Main Workspace */
+  main {
+    flex: 1;
+    max-width: 1520px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 1.25rem 1.25rem 2rem;
+    display: grid;
+    grid-template-columns: 460px 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.15rem;
+    margin-bottom: 1.15rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 0.9rem;
+  }
+  .card-title {
+    font-size: 0.92rem; font-weight: 600; color: #fff;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .card-title-icon { color: var(--accent); }
+
+  /* Mode Switcher */
+  .mode-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.45rem;
+    background: #0d131f;
+    padding: 0.35rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 1rem;
+  }
+  .mode-btn {
+    border: none; background: transparent; color: var(--fg-muted);
+    padding: 0.55rem 0.3rem; border-radius: 8px; cursor: pointer;
+    font-size: 0.78rem; font-weight: 500; text-align: center;
+    transition: all 0.18s; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+  }
+  .mode-btn span.icon { font-size: 1.15rem; }
+  .mode-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.04); }
+  .mode-btn.active {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.15));
+    color: #34d399; font-weight: 600;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+  }
+
+  /* Form Elements */
+  label {
+    display: block; font-size: 0.78rem; font-weight: 500;
+    color: var(--fg-muted); margin: 0.75rem 0 0.35rem;
+  }
+  textarea, input[type=text], input[type=password], input[type=number], select {
+    width: 100%;
+    background: #0d131f;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font: inherit;
+    font-size: 0.84rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  textarea:focus, input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+  textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
+
+  /* Prompt Assistant Row */
+  .prompt-toolbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    margin-top: 0.55rem; flex-wrap: wrap;
+  }
+  .prompt-style-select {
+    flex: 1; min-width: 140px; font-size: 0.78rem; padding: 0.4rem 0.6rem;
+  }
+  .btn-magic {
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    border: none; color: #fff; padding: 0.45rem 0.9rem; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    box-shadow: 0 2px 10px var(--primary-glow); transition: all 0.2s;
+  }
+  .btn-magic:hover { opacity: 0.95; transform: translateY(-1px); }
+  .btn-magic:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Inspiration Tags */
+  .tag-pool {
+    display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem;
+  }
+  .tag-chip {
+    font-size: 0.72rem; padding: 0.2rem 0.55rem; border-radius: 999px;
+    background: #172236; border: 1px solid var(--border); color: #cbd5e1;
+    cursor: pointer; transition: all 0.15s; user-select: none;
+  }
+  .tag-chip:hover {
+    background: #1e2e4a; border-color: var(--accent); color: #38bdf8;
+    transform: translateY(-1px);
+  }
+
+  /* Dual Prompt / Translation Box */
+  .trans-preview {
+    background: #0d1424;
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: 8px;
+    padding: 0.65rem 0.75rem;
+    margin-top: 0.75rem;
+    position: relative;
+  }
+  .trans-preview-header {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.72rem; color: #38bdf8; font-weight: 600; margin-bottom: 0.35rem;
+  }
+  .trans-preview textarea {
+    min-height: 68px; font-size: 0.8rem; background: transparent;
+    border: none; padding: 0; box-shadow: none; color: #e2e8f0;
+  }
+  .trans-preview textarea:focus { border: none; box-shadow: none; }
+
+  /* Aspect Ratio Selector */
+  .ratio-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem; margin-top: 0.35rem;
+  }
+  .ratio-btn {
+    background: #0d131f; border: 1px solid var(--border); color: var(--fg-muted);
+    border-radius: 8px; padding: 0.45rem 0.25rem; font-size: 0.75rem;
+    display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .ratio-btn .icon-box {
+    border: 1.5px solid var(--fg-muted); border-radius: 3px; display: inline-block;
+  }
+  .ratio-btn.active {
+    background: rgba(16, 185, 129, 0.15); border-color: var(--primary);
+    color: #34d399; font-weight: 600;
+  }
+  .ratio-btn.active .icon-box { border-color: var(--primary); }
+
+  /* Sliders & Inputs */
+  .range-box { display: flex; align-items: center; gap: 0.75rem; }
+  .range-box input[type=range] { flex: 1; accent-color: var(--primary); cursor: pointer; }
+  .range-val {
+    font-family: ui-monospace, monospace; font-size: 0.82rem; font-weight: 600;
+    min-width: 44px; text-align: right; color: var(--accent);
+  }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .seed-box { display: flex; gap: 0.45rem; }
+  .seed-box input { flex: 1; }
+
+  /* Reference Image Card */
+  .upload-dropzone {
+    border: 1.5px dashed var(--border-light);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    background: #0d131f;
+    transition: all 0.2s;
+  }
+  .upload-dropzone:hover {
+    border-color: var(--accent); background: rgba(6, 182, 212, 0.04);
+  }
+  .ref-tabs { display: flex; gap: 0.4rem; margin: 0.6rem 0; }
+  .ref-tab {
+    flex: 1; background: #0d131f; border: 1px solid var(--border);
+    padding: 0.35rem; font-size: 0.75rem; border-radius: 6px; color: var(--fg-muted);
+    cursor: pointer; text-align: center;
+  }
+  .ref-tab.active {
+    border-color: var(--primary); color: #34d399; background: rgba(16, 185, 129, 0.1);
+  }
+  .ref-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 0.4rem; max-height: 140px; overflow-y: auto; margin-top: 0.4rem;
+  }
+  .ref-grid img {
+    width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px;
+    border: 2px solid transparent; cursor: pointer; background: #000;
+  }
+  .ref-grid img.selected { border-color: var(--primary); box-shadow: 0 0 8px var(--primary-glow); }
+  .ref-selected-preview {
+    display: flex; align-items: center; gap: 0.75rem; margin-top: 0.65rem;
+    padding: 0.5rem; background: #0d131f; border-radius: 8px; border: 1px solid var(--border);
+  }
+  .ref-selected-preview img {
+    width: 60px; height: 60px; object-fit: cover; border-radius: 6px;
+  }
+
+  /* Big Action Button */
+  .btn-generate {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.9rem;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 20px var(--primary-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    transition: all 0.2s;
+  }
+  .btn-generate:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px var(--primary-glow);
+  }
+  .btn-generate:disabled {
+    background: #334155;
+    color: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+  .spinner {
+    width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Right Stage Hub */
+  .stage-hub { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  /* Hero Display Stage */
+  .hero-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    min-height: 460px;
+    display: flex;
+    flex-direction: column;
+  }
+  .hero-media-wrap {
+    flex: 1;
+    min-height: 420px;
+    background: #060910;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .hero-result-view {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hero-result-view img, .hero-result-view video {
+    max-width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+    display: block;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    animation: fadeIn 0.35s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+  .hero-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.75rem; color: #475569; text-align: center; padding: 2.5rem;
+  }
+  .hero-placeholder .big-icon { font-size: 3.5rem; opacity: 0.4; }
+
+  /* Dedicated Generating Canvas (新任务时不展示旧图) */
+  .hero-generating-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.4rem;
+    padding: 2.5rem;
+    width: 100%;
+    height: 100%;
+    min-height: 420px;
+    background: radial-gradient(circle at center, #111a2f 0%, #060910 100%);
+    animation: fadeIn 0.25s ease;
+  }
+  .pulse-ring-box {
+    position: relative;
+    width: 84px; height: 84px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pulse-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid var(--accent); opacity: 0.75;
+    animation: pulseRing 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+  .pulse-ring-2 {
+    position: absolute; inset: -8px; border-radius: 50%;
+    border: 2px dashed var(--primary); opacity: 0.45;
+    animation: spin 9s linear infinite;
+  }
+  .pulse-core {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.35rem; box-shadow: 0 0 20px var(--primary-glow);
+  }
+  @keyframes pulseRing {
+    0% { transform: scale(0.65); opacity: 0.85; }
+    50% { transform: scale(1.15); opacity: 0.25; }
+    100% { transform: scale(1.45); opacity: 0; }
+  }
+
+  /* Stepper */
+  .stepper {
+    display: flex; align-items: center; gap: 1.2rem; max-width: 460px; width: 100%;
+  }
+  .step-node {
+    display: flex; flex-direction: column; align-items: center; gap: 0.35rem; flex: 1; text-align: center;
+  }
+  .step-circle {
+    width: 28px; height: 28px; border-radius: 50%; background: #1e293b; border: 2px solid #334155;
+    color: #94a3b8; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  .step-node.active .step-circle {
+    background: var(--primary); border-color: #34d399; color: #fff; box-shadow: 0 0 12px var(--primary-glow);
+  }
+  .step-node.done .step-circle {
+    background: #065f46; border-color: #10b981; color: #34d399;
+  }
+  .step-label { font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
+  .step-node.active .step-label { color: #34d399; font-weight: 600; }
+  .step-line { flex: 1; height: 2px; background: #334155; margin-bottom: 1.2rem; }
+
+  /* Generating Telemetry Badge */
+  .generating-telemetry {
+    display: flex; align-items: center; gap: 0.75rem; padding: 0.4rem 0.85rem;
+    border-radius: 999px; background: rgba(0, 0, 0, 0.45); border: 1px solid var(--border);
+    font-size: 0.75rem; color: #94a3b8; font-family: ui-monospace, Consolas, monospace;
+  }
+
+  /* Hero Info Footer */
+  .hero-info {
+    padding: 1rem 1.25rem;
+    background: #111827;
+    border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 0.75rem;
+  }
+  .hero-meta-row {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+  }
+  .meta-pills { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .meta-pill {
+    font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 6px;
+    background: #162238; border: 1px solid var(--border); color: #cbd5e1;
+  }
+  .meta-pill.highlight { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); color: #34d399; }
+  .hero-actions { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .hero-prompt-text {
+    font-size: 0.82rem; color: #cbd5e1; line-height: 1.5;
+    background: #0a0f1d; padding: 0.6rem 0.8rem; border-radius: 6px; border: 1px solid var(--border);
+  }
+
+  /* Gallery Hub */
+  .gallery-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.15rem;
+  }
+  .gallery-filter-row {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem;
+  }
+  .filter-pills { display: flex; gap: 0.35rem; }
+  .filter-pill {
+    font-size: 0.75rem; padding: 0.25rem 0.65rem; border-radius: 6px;
+    background: #0d131f; border: 1px solid var(--border); color: var(--fg-muted); cursor: pointer;
+  }
+  .filter-pill.active {
+    background: #1e293b; border-color: var(--accent); color: #38bdf8;
+  }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.65rem;
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 0.2rem;
+  }
+  .gallery-item {
+    position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--border); cursor: pointer; background: #000;
+    transition: transform 0.18s, border-color 0.18s;
+  }
+  .gallery-item:hover {
+    transform: translateY(-2px); border-color: var(--accent);
+  }
+  .gallery-item img, .gallery-item video {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .gallery-item .badge {
+    position: absolute; top: 5px; right: 5px; font-size: 0.65rem;
+    background: rgba(0, 0, 0, 0.75); color: #fff; padding: 0.1rem 0.35rem;
+    border-radius: 4px; backdrop-filter: blur(4px);
+  }
+
+  /* Logs Accordion */
+  .logs-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .logs-header {
+    padding: 0.65rem 1rem; background: #0f1626; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.8rem; font-weight: 600; color: var(--fg-muted);
+  }
+  .logs-terminal {
+    background: #080c14; padding: 0.75rem; font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.75rem; color: #a5b4fc; max-height: 140px; overflow-y: auto;
+    white-space: pre-wrap; word-break: break-all; line-height: 1.5;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
+    z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+  .modal {
+    background: #111827; border: 1px solid var(--border-light); border-radius: 14px;
+    width: 90%; max-width: 540px; padding: 1.5rem; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .modal-title { font-size: 1.05rem; font-weight: 700; color: #fff; }
+
+  /* Helpers */
+  .hint { font-size: 0.74rem; color: var(--fg-muted); margin-top: 0.35rem; line-height: 1.4; }
+  .hint.warn { color: var(--warning); }
+  .hint.ok { color: var(--primary); }
+
+  @media (max-width: 1100px) {
+    main { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-logo">✨</div>
+    <div>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span class="brand-title">ComfyWeb Studio</span>
+        <span class="brand-badge">SDXL + LTX-Video</span>
+      </div>
+      <div style="font-size:.72rem;color:var(--fg-muted)">AI 绘画 & 视频创作平台 · 本地硬件全速驱动</div>
+    </div>
+  </div>
+
+  <!-- 顶部右侧系统与硬件监控栏 -->
+  <div class="monitor-bar" id="monitor-bar">
+    <!-- CPU 监控 -->
+    <div class="monitor-pill" id="pill-cpu" title="CPU 使用率">
+      <span class="pill-icon">💻</span>
+      <span class="pill-label">CPU</span>
+      <span class="pill-val" id="mon-cpu">--%</span>
+      <div class="pill-bar"><div class="pill-fill" id="mon-cpu-bar" style="width:0%"></div></div>
+    </div>
+
+    <!-- 内存监控 -->
+    <div class="monitor-pill" id="pill-ram" title="物理内存占用">
+      <span class="pill-icon">🧠</span>
+      <span class="pill-label">内存</span>
+      <span class="pill-val" id="mon-ram">-- / --G</span>
+      <div class="pill-bar"><div class="pill-fill" id="mon-ram-bar" style="width:0%"></div></div>
+    </div>
+
+    <!-- 显卡显存监控 -->
+    <div class="monitor-pill" id="pill-vram" title="GPU 显存占用">
+      <span class="pill-icon">🎮</span>
+      <span class="pill-label">显存</span>
+      <span class="pill-val" id="mon-vram">-- / --G</span>
+      <div class="pill-bar"><div class="pill-fill" id="mon-vram-bar" style="width:0%"></div></div>
+    </div>
+
+    <!-- 显卡负载与功耗监控 -->
+    <div class="monitor-pill highlight" id="pill-gpu" title="GPU 负载、实时功耗与温度">
+      <span class="pill-icon">⚡</span>
+      <span class="pill-label" id="mon-gpu-name">GPU</span>
+      <span class="pill-val" id="mon-gpu-val">--W · --%</span>
+      <span class="pill-sub" id="mon-temp">--°C</span>
+    </div>
+
+    <!-- ComfyUI 在线状态 -->
+    <div class="status-pill" id="comfy-status-pill">
+      <span class="status-dot" id="comfy-dot"></span>
+      <span id="comfy-text">ComfyUI</span>
+    </div>
+
+    <!-- LLM 转写状态 -->
+    <div class="status-pill" id="llm-status-pill" style="cursor:pointer" title="点击配置 LLM 提示词转写服务">
+      <span class="status-dot" id="llm-dot"></span>
+      <span id="llm-text">LLM 助手</span>
+    </div>
+
+    <button class="btn-ghost" id="open-settings-btn" style="padding:.32rem .65rem">⚙️ 设置</button>
+  </div>
+</header>
+
+<main>
+  <!-- 左侧控制面板 -->
+  <section class="control-panel">
+    <!-- 1. 模式选择 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="card-title-icon">🎯</span> 生成模式</span>
+        <span class="hint" id="mode-badge" style="margin:0">SDXL 极速出图</span>
+      </div>
+      <div class="mode-grid">
+        <button class="mode-btn active" data-mode="image" data-ref="0">
+          <span class="icon">🎨</span><span>文生图</span>
+        </button>
+        <button class="mode-btn" data-mode="image" data-ref="1">
+          <span class="icon">🖼️</span><span>图生图</span>
+        </button>
+        <button class="mode-btn" data-mode="video" data-ref="0">
+          <span class="icon">🎬</span><span>文生视频</span>
+        </button>
+        <button class="mode-btn" data-mode="video" data-ref="1">
+          <span class="icon">🎥</span><span>图生视频</span>
+        </button>
+      </div>
+
+      <!-- 提示词输入核心 -->
+      <label for="prompt">💡 自然语言创意描述 (中文 / 英文均可)</label>
+      <textarea id="prompt" placeholder="例如：一只毛茸茸的红色小狐狸静坐在雪地松林里，夕阳金光穿透树影，电影运镜，8k杰作…">一只毛茸茸的红色小狐狸静坐在雪地松林里，夕阳金光穿透树影，电影运镜，8k杰作</textarea>
+
+      <!-- 提示词工具栏 -->
+      <div class="prompt-toolbar">
+        <select id="prompt-style" class="prompt-style-select" title="选择智能扩写风格">
+          <option value="photorealistic">📸 写实摄影 (Photorealistic)</option>
+          <option value="cinematic">🎬 电影质感 (Cinematic)</option>
+          <option value="anime">🎨 二次元动漫 (Anime)</option>
+          <option value="fantasy">🌌 奇幻概念艺术 (Concept Art)</option>
+          <option value="video_motion">🎥 视频动态运镜 (LTX-Video)</option>
+          <option value="direct">📝 精准直译 (Direct Tagging)</option>
+        </select>
+        <button class="btn-magic" id="btn-optimize-prompt">
+          <span>✨</span><span id="opt-btn-text">智能润色 / 翻译</span>
+        </button>
+      </div>
+
+      <!-- 常用快捷灵感标签 -->
+      <div class="tag-pool">
+        <span class="tag-chip" data-tag="8k resolution, photorealistic, masterpiece">🌟 8K超清</span>
+        <span class="tag-chip" data-tag="tyndall effect, volumetric rays, cinematic lighting">✨ 丁达尔光</span>
+        <span class="tag-chip" data-tag="35mm lens, f/1.4, shallow depth of field, bokeh">📷 35mm特写景深</span>
+        <span class="tag-chip" data-tag="cyberpunk neon lighting, vivid colors">🌃 赛博霓虹</span>
+        <span class="tag-chip" data-tag="studio soft lighting, smooth skin texture">💡 柔和人像光</span>
+        <span class="tag-chip" data-tag="cinematic slow pan, smooth camera motion, 24fps">🎥 慢动作运镜</span>
+        <span class="tag-chip" data-tag="watercolor painting, artistic, expressive strokes">🎨 水彩写意</span>
+        <span class="tag-chip" data-tag="macro lens, ultra high detailed texture">🔍 微距细节</span>
+      </div>
+
+      <!-- 英文提示词预览 & 确认框 -->
+      <div class="trans-preview" id="trans-preview-box">
+        <div class="trans-preview-header">
+          <span>🚀 最终送入 ComfyUI 的英文提示词 (可手动微调)：</span>
+          <div style="display:flex;gap:.4rem">
+            <button class="btn-ghost" style="padding:.1rem .4rem;font-size:.7rem" id="btn-copy-prompt">复制</button>
+            <button class="btn-ghost" style="padding:.1rem .4rem;font-size:.7rem" id="btn-clear-en">重置</button>
+          </div>
+        </div>
+        <textarea id="prompt-en" placeholder="点击「智能润色 / 翻译」或直接输入英文提示词。留空时系统将在生图前自动调用 LLM 扩写。"></textarea>
+      </div>
+    </div>
+
+    <!-- 2. 反向提示词 (Negative Prompt) -->
+    <div class="card">
+      <div class="card-header" style="margin-bottom:.4rem;cursor:pointer" id="neg-toggle">
+        <span class="card-title" style="font-size:.85rem"><span class="card-title-icon">🛡️</span> 反向提示词 (Negative Prompt)</span>
+        <span style="font-size:.75rem;color:var(--accent)" id="neg-toggle-arrow">展开 ▼</span>
+      </div>
+      <div id="neg-content" hidden>
+        <textarea id="negative-prompt" style="min-height:64px;font-size:.78rem">watermark, text, blurry, low quality, jpeg artifacts, deformed, extra limbs, bad anatomy, bad hands, missing fingers, poorly drawn face</textarea>
+        <div class="tag-pool" style="margin-top:.4rem">
+          <span class="tag-chip" id="neg-preset-std">标准通用</span>
+          <span class="tag-chip" id="neg-preset-real">真实感强化</span>
+          <span class="tag-chip" id="neg-preset-anime">动漫去杂质</span>
+          <span class="tag-chip" id="neg-preset-vid">视频抗畸变</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 参考图 / 首帧设置 (仅在图生图/图生视频显示) -->
+    <div class="card" id="ref-card" hidden>
+      <div class="card-header">
+        <span class="card-title"><span class="card-title-icon">🖼️</span> 参考图 / 视频首帧</span>
+        <span class="hint" id="ref-note" style="margin:0"></span>
+      </div>
+      <div class="upload-dropzone" id="dropzone">
+        <div style="font-size:1.5rem;margin-bottom:.3rem">📤</div>
+        <div style="font-size:.82rem;font-weight:600">点击上传 或 拖拽图片至此处</div>
+        <div class="hint">支持 PNG, JPG, WebP 格式</div>
+        <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp" style="display:none" />
+      </div>
+
+      <div class="ref-tabs">
+        <div class="ref-tab active" data-src="ours">最近产物</div>
+        <div class="ref-tab" data-src="output">ComfyUI 图库</div>
+        <div class="ref-tab" data-src="input">Input 目录</div>
+      </div>
+      <div class="ref-grid" id="ref-grid"><p class="hint">加载中…</p></div>
+
+      <div class="ref-selected-preview" id="ref-preview-bar" hidden>
+        <img id="ref-selected-img" src="" alt="选中图" />
+        <div style="flex:1;overflow:hidden">
+          <div style="font-size:.78rem;font-weight:600;white-space:nowrap;text-overflow:ellipsis;overflow:hidden" id="ref-selected-name">未选择</div>
+          <div class="hint" id="ref-selected-dim">— × —</div>
+        </div>
+      </div>
+
+      <!-- 图生图 / 图生视频专用参数 -->
+      <div id="p-denoise-box" style="margin-top:.75rem" hidden>
+        <label>重绘幅度 (Denoise)：<span class="range-val" id="denoise-val">0.75</span></label>
+        <div class="range-box">
+          <input type="range" id="denoise" min="0.1" max="1.0" step="0.05" value="0.75" />
+        </div>
+        <p class="hint">数值越低越贴近原图，数值越高越听从文字提示词发散构图。</p>
+      </div>
+
+      <div id="p-strength-box" style="margin-top:.75rem" hidden>
+        <label>首帧锚定权重 (Strength)：<span class="range-val" id="strength-val">1.00</span></label>
+        <div class="range-box">
+          <input type="range" id="strength" min="0.3" max="1.0" step="0.05" value="1.00" />
+        </div>
+        <p class="hint">1.0 代表从原图首帧平滑开始运动演化。</p>
+      </div>
+    </div>
+
+    <!-- 4. 生图 / 视频参数 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="card-title-icon">⚙️</span> 生成参数调优</span>
+      </div>
+
+      <!-- 图片尺寸选择 -->
+      <div id="p-image-size">
+        <label>画面宽高比 (Aspect Ratio)</label>
+        <div class="ratio-grid">
+          <div class="ratio-btn active" data-wh="1024x1024">
+            <span class="icon-box" style="width:14px;height:14px"></span>
+            <span>1:1</span>
+          </div>
+          <div class="ratio-btn" data-wh="1216x832">
+            <span class="icon-box" style="width:18px;height:12px"></span>
+            <span>16:9</span>
+          </div>
+          <div class="ratio-btn" data-wh="832x1216">
+            <span class="icon-box" style="width:12px;height:18px"></span>
+            <span>9:16</span>
+          </div>
+          <div class="ratio-btn" data-wh="1152x896">
+            <span class="icon-box" style="width:16px;height:12px"></span>
+            <span>4:3</span>
+          </div>
+          <div class="ratio-btn" data-wh="896x1152">
+            <span class="icon-box" style="width:12px;height:16px"></span>
+            <span>3:4</span>
+          </div>
+        </div>
+        <select id="size" style="display:none">
+          <option value="1024x1024">1024x1024</option>
+          <option value="1216x832">1216x832</option>
+          <option value="832x1216">832x1216</option>
+          <option value="1152x896">1152x896</option>
+          <option value="896x1152">896x1152</option>
+        </select>
+      </div>
+
+      <!-- 视频专用尺寸 -->
+      <div id="p-video-size" hidden>
+        <label>视频输出分辨率</label>
+        <select id="vsize">
+          <option value="768x512">768 × 512 (标准横屏 · 推荐)</option>
+          <option value="512x512">512 × 512 (方形视频)</option>
+          <option value="512x320">512 × 320 (极速 / 4GB显存首选)</option>
+        </select>
+        <div class="row-2" style="margin-top:.75rem">
+          <div>
+            <label>视频总帧数</label>
+            <select id="length">
+              <option value="49">49 帧 (约 2 秒 · 极速)</option>
+              <option value="81">81 帧 (约 3.4 秒 · 推荐)</option>
+              <option value="97">97 帧 (约 4 秒 · 长镜头)</option>
+            </select>
+          </div>
+          <div>
+            <label>视频采样步数</label>
+            <input type="number" id="vsteps" value="20" min="10" max="40" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 步数 & CFG -->
+      <div class="row-2" style="margin-top:.75rem">
+        <div>
+          <label>采样步数 (Steps)</label>
+          <input type="number" id="steps" value="25" min="10" max="50" />
+        </div>
+        <div>
+          <label>提示词相关性 (CFG Scale)</label>
+          <input type="number" id="cfg" value="6.0" min="1.0" max="15.0" step="0.5" />
+        </div>
+      </div>
+
+      <!-- 随机种子 -->
+      <label>随机种子 (Seed，0 = 每次随机)</label>
+      <div class="seed-box">
+        <input type="number" id="seed" value="0" min="0" />
+        <button class="btn-ghost" id="btn-rand-seed" title="随机生成新种子">🎲 随机</button>
+        <button class="btn-ghost" id="btn-zero-seed" title="设为0（完全随机）">↺ 0</button>
+      </div>
+
+      <!-- 生成触发大按钮 -->
+      <button class="btn-generate" id="go-btn">
+        <span id="go-icon">🚀</span>
+        <span id="go-text">开始生成</span>
+        <span style="font-size:.75rem;opacity:.7;font-weight:400">(Ctrl + Enter)</span>
+      </button>
+      <div class="hint" id="est-time" style="text-align:center;margin-top:.5rem">预计耗时：~50 秒</div>
+    </div>
+  </section>
+
+  <!-- 右侧展示与资产中心 -->
+  <section class="stage-hub">
+    <!-- 主展示台 (Hero Stage) -->
+    <div class="hero-card">
+      <div class="hero-media-wrap" id="hero-media-wrap">
+        <!-- 1. 初始空闲占位状态 -->
+        <div class="hero-placeholder" id="hero-placeholder">
+          <div class="big-icon">🎨</div>
+          <div style="font-size:.95rem;font-weight:600;color:#cbd5e1">等待任务启动</div>
+          <div style="font-size:.78rem">在左侧输入创意提示词，点击「开始生成」即可见证创作诞生</div>
+        </div>
+
+        <!-- 2. 专属创作中状态 (新任务时不展示旧图，干净沉浸) -->
+        <div class="hero-generating-view" id="hero-generating-view" hidden>
+          <div class="pulse-ring-box">
+            <div class="pulse-ring"></div>
+            <div class="pulse-ring-2"></div>
+            <div class="pulse-core">✨</div>
+          </div>
+
+          <div class="stepper">
+            <div class="step-node active" id="step-1">
+              <div class="step-circle">1</div>
+              <div class="step-label">提示词润色</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-node" id="step-2">
+              <div class="step-circle">2</div>
+              <div class="step-label">ComfyUI 采样</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-node" id="step-3">
+              <div class="step-circle">3</div>
+              <div class="step-label">结果合成</div>
+            </div>
+          </div>
+
+          <div style="font-size:.92rem;font-weight:600;color:#fff;display:flex;align-items:center;gap:.6rem">
+            <div class="spinner"></div>
+            <span id="progress-status-text">正在启动渲染管线…</span>
+          </div>
+
+          <!-- 实时遥测负载与耗时 -->
+          <div class="generating-telemetry">
+            <span id="progress-elapsed">⏱️ 已耗时 0s</span>
+            <span>·</span>
+            <span id="progress-telemetry">⚡ 显卡就绪</span>
+          </div>
+        </div>
+
+        <!-- 3. 新产物展示区 (新生成完成时平滑呈现) -->
+        <div class="hero-result-view" id="hero-result-view" hidden></div>
+      </div>
+
+      <!-- 产物信息栏与一键流转按钮 -->
+      <div class="hero-info" id="hero-info" hidden>
+        <div class="hero-meta-row">
+          <div class="meta-pills">
+            <span class="meta-pill highlight" id="hero-type-badge">图片</span>
+            <span class="meta-pill" id="hero-dim-badge">1024×1024</span>
+            <span class="meta-pill" id="hero-time-badge">45.2s</span>
+            <span class="meta-pill" id="hero-seed-badge">种子: 123456</span>
+          </div>
+          <div class="hero-actions">
+            <a class="btn-ghost" id="hero-download-btn" download href="#">📥 下载高清原件</a>
+            <button class="btn-ghost" id="hero-to-video-btn" title="把这张图作为首帧送入图生视频">🎬 转为视频首帧</button>
+            <button class="btn-ghost" id="hero-to-i2i-btn" title="把这张图作为参考图送入图生图">🖼️ 以此图重绘</button>
+            <button class="btn-ghost" id="hero-reuse-btn" title="复用此任务的全部参数和提示词">🎲 复用参数</button>
+          </div>
+        </div>
+        <div class="hero-prompt-text" id="hero-prompt-box"></div>
+      </div>
+    </div>
+
+    <!-- 产物画廊 (全部生成历史) -->
+    <div class="gallery-card">
+      <div class="gallery-filter-row">
+        <span class="card-title" style="font-size:.9rem"><span class="card-title-icon">🏛️</span> 产物画廊 (本地 outputs)</span>
+        <div class="filter-pills">
+          <button class="filter-pill active" data-filter="all">全部</button>
+          <button class="filter-pill" data-filter="image">图片</button>
+          <button class="filter-pill" data-filter="video">视频</button>
+          <button class="filter-pill" id="btn-refresh-gallery">🔄 刷新</button>
+        </div>
+      </div>
+      <div class="gallery-grid" id="gallery-grid">
+        <p class="hint">暂无产物</p>
+      </div>
+    </div>
+
+    <!-- 实时执行日志折叠抽屉 -->
+    <div class="logs-card">
+      <div class="logs-header" id="logs-header">
+        <span>📋 后端实时执行控制台 (Live Logs)</span>
+        <span style="font-size:.75rem;color:var(--accent)" id="logs-toggle-arrow">展开 ▼</span>
+      </div>
+      <div class="logs-terminal" id="logs-terminal" hidden>等待启动…</div>
+    </div>
+  </section>
+</main>
+
+<!-- LLM 设置模态框 -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">⚙️ LLM 提示词翻译与扩写助手配置</span>
+      <button class="btn-ghost" id="close-settings-btn" style="padding:.2rem .5rem">✕</button>
+    </div>
+
+    <label style="margin-top:0">
+      <input type="checkbox" id="llm-enabled" style="width:auto;margin-right:.4rem" /> 启用中文自然语言转写与提示词工程扩写
+    </label>
+
+    <label for="provider-select">推荐服务商预设 (选择快速填入)</label>
+    <select id="provider-select">
+      <option value="">-- 选择服务商预设 --</option>
+      <option value="minimax" data-base="https://api.minimaxi.chat/v1" data-model="MiniMax-M2">MiniMax (海螺大模型 / MiniMax-M2)</option>
+      <option value="deepseek" data-base="https://api.deepseek.com/v1" data-model="deepseek-chat">DeepSeek (深度求索 / deepseek-chat)</option>
+      <option value="zhipu" data-base="https://open.bigmodel.cn/api/paas/v4" data-model="glm-4-flash">智谱 AI (GLM-4-Flash)</option>
+      <option value="moonshot" data-base="https://api.moonshot.cn/v1" data-model="moonshot-v1-8k">Kimi / 月之暗面 (moonshot-v1-8k)</option>
+      <option value="openai" data-base="https://api.openai.com/v1" data-model="gpt-4o-mini">OpenAI (GPT-4o-mini)</option>
+      <option value="ollama" data-base="http://127.0.0.1:11434/v1" data-model="qwen2.5:7b">本地 Ollama (Qwen2.5 / 无需Key)</option>
+    </select>
+
+    <label for="llm-base">Base URL (OpenAI 兼容协议地址)</label>
+    <input type="text" id="llm-base" placeholder="例如 https://api.minimaxi.chat/v1" />
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.75rem">
+      <label style="margin:0" for="llm-model">模型名称 (Model ID)</label>
+      <button class="btn-ghost" id="btn-fetch-models" style="padding:.15rem .5rem;font-size:.72rem">🔄 获取可用模型列表</button>
+    </div>
+    <input type="text" id="llm-model" placeholder="例如 MiniMax-M2 / deepseek-chat" list="model-datalist" />
+    <datalist id="model-datalist"></datalist>
+
+    <label for="llm-key">API Key</label>
+    <input type="password" id="llm-key" placeholder="粘贴你的 API Key" autocomplete="off" />
+
+    <div style="display:flex;gap:.5rem;margin-top:1.2rem">
+      <button class="btn-magic" style="flex:1" id="btn-save-settings">💾 保存配置到 config.json</button>
+      <button class="btn-ghost" id="btn-test-settings">⚡ 测试连接</button>
+      <button class="btn-ghost" id="btn-clear-key" style="color:var(--danger)">清除Key</button>
+    </div>
+
+    <div class="hint" id="llm-test-result" style="margin-top:.75rem"></div>
+    <div class="hint warn" style="margin-top:.4rem">🔒 API Key 仅保存在本机当前目录的 config.json 中，绝不向外暴露。</div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let mode = "image", useRef = false, selectedRef = null, refNaturalDims = null;
+let isGenerating = false, pollTimer = null, elapsedTimer = null, elapsedSeconds = 0;
+let currentHeroJob = null;
+let lastGpuTelemetryText = "⚡ 显卡就绪";
+
+// ---------- API 封装 ----------
+async function api(path, opts = {}) {
+  const r = await fetch(path, opts);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
+}
+
+function esc(s) {
+  return String(s || "").replace(/[&<>'"]/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+  }[c]));
+}
+
+// ---------- 实时硬件监控 (CPU / 内存 / 显卡显存 / 功耗) ----------
+async function pollHardwareMonitor() {
+  try {
+    const data = await api("/api/monitor");
+
+    // 1. CPU
+    if (data.cpu) {
+      const cpuP = data.cpu.percent || 0;
+      $("mon-cpu").textContent = `${cpuP.toFixed(0)}%`;
+      $("mon-cpu-bar").style.width = `${Math.min(100, cpuP)}%`;
+      $("mon-cpu-bar").className = "pill-fill" + (cpuP > 85 ? " danger" : cpuP > 70 ? " warn" : "");
+    }
+
+    // 2. RAM
+    if (data.ram) {
+      const ramP = data.ram.percent || 0;
+      $("mon-ram").textContent = `${data.ram.used_gb}/${data.ram.total_gb}G`;
+      $("mon-ram-bar").style.width = `${Math.min(100, ramP)}%`;
+      $("mon-ram-bar").className = "pill-fill" + (ramP > 85 ? " danger" : ramP > 75 ? " warn" : "");
+    }
+
+    // 3. GPU VRAM & Power
+    if (data.gpu && data.gpu.available) {
+      const g = data.gpu;
+      // 显存
+      $("mon-vram").textContent = `${g.vram_used_gb}/${g.vram_total_gb}G`;
+      $("mon-vram-bar").style.width = `${Math.min(100, g.vram_percent)}%`;
+      $("mon-vram-bar").className = "pill-fill" + (g.vram_percent > 85 ? " danger" : g.vram_percent > 70 ? " warn" : "");
+
+      // 功耗与负载
+      $("mon-gpu-name").textContent = g.name || "GPU";
+      $("mon-gpu-val").textContent = `${g.power_watts > 0 ? g.power_watts.toFixed(0) + 'W · ' : ''}${g.util.toFixed(0)}%`;
+      $("mon-temp").textContent = `${g.temp.toFixed(0)}°C`;
+
+      lastGpuTelemetryText = `🎮 ${g.name} · 负载 ${g.util.toFixed(0)}% · 功耗 ${g.power_watts.toFixed(0)}W · 显存 ${g.vram_used_gb}/${g.vram_total_gb}G`;
+      if (isGenerating && $("progress-telemetry")) {
+        $("progress-telemetry").textContent = lastGpuTelemetryText;
+      }
+    } else {
+      $("mon-vram").textContent = "-- / --G";
+      $("mon-gpu-val").textContent = "--W · --%";
+      $("mon-temp").textContent = "--°C";
+    }
+
+    // ComfyUI 在线状态
+    if (data.comfy) {
+      $("comfy-dot").className = "status-dot green";
+      $("comfy-text").textContent = "ComfyUI 在线";
+    } else {
+      $("comfy-dot").className = "status-dot red";
+      $("comfy-text").textContent = "ComfyUI 离线";
+    }
+  } catch (err) {
+    // 忽略静默网络错误
+  }
+}
+setInterval(pollHardwareMonitor, 1800);
+pollHardwareMonitor();
+
+// ---------- 模式切换 ----------
+const MODE_HINTS = {
+  "image0": { title: "文生图", hint: "SDXL 1024 极速出图", note: "" },
+  "image1": { title: "图 + 文生图", hint: "基于参考图构图重绘", note: "底图经 VAE 编码保留色彩与构图，按 Denoise 重绘。" },
+  "video0": { title: "文生视频", hint: "SDXL 出图 + LTX-Video 动起来", note: "两步级联：先由 SDXL 生成首帧，再由 LTX-Video 生成动态视频。" },
+  "video1": { title: "图生视频", hint: "指定首帧由 LTX-Video 驱动", note: "选中的图片将作为视频起始帧，模型顺延渲染动态演化。" },
+};
+
+document.querySelectorAll(".mode-grid .mode-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".mode-grid .mode-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    mode = btn.dataset.mode;
+    useRef = btn.dataset.ref === "1";
+
+    const key = mode + (useRef ? "1" : "0");
+    $("mode-badge").textContent = MODE_HINTS[key].hint;
+    $("ref-note").textContent = MODE_HINTS[key].note;
+
+    // 显示/隐藏条件面板
+    $("ref-card").hidden = !useRef;
+    $("p-image-size").hidden = mode !== "image" || useRef;
+    $("p-video-size").hidden = mode !== "video";
+    $("p-denoise-box").hidden = !(mode === "image" && useRef);
+    $("p-strength-box").hidden = !(mode === "video");
+
+    if (useRef && !$("ref-grid").dataset.loaded) {
+      loadPresets("ours");
+    }
+    updateEstimate();
+  };
+});
+
+// ---------- 提示词增强与灵感标签 ----------
+$("btn-optimize-prompt").onclick = async () => {
+  const prompt = $("prompt").value.trim();
+  if (!prompt) {
+    alert("请先输入自然语言描述！");
+    return;
+  }
+  const btn = $("btn-optimize-prompt");
+  const txt = $("opt-btn-text");
+  btn.disabled = true;
+  txt.textContent = "AI 正在润色扩写…";
+
+  try {
+    const res = await api("/api/prompt/optimize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: prompt,
+        style: $("prompt-style").value,
+        mode: mode
+      })
+    });
+
+    if (res.ok && res.used) {
+      $("prompt-en").value = res.prompt_en;
+      $("prompt-en").style.borderColor = "var(--primary)";
+    } else {
+      if (res.error) {
+        alert("LLM 转写提示：" + res.error);
+      }
+      $("prompt-en").value = res.prompt_en || prompt;
+    }
+  } catch (err) {
+    alert("润色请求失败：" + err.message);
+  } finally {
+    btn.disabled = false;
+    txt.textContent = "智能润色 / 翻译";
+  }
+};
+
+document.querySelectorAll(".tag-chip[data-tag]").forEach(chip => {
+  chip.onclick = () => {
+    const cur = $("prompt").value.trim();
+    const tag = chip.dataset.tag;
+    $("prompt").value = cur ? `${cur}，${tag}` : tag;
+    chip.style.borderColor = "var(--accent)";
+    setTimeout(() => chip.style.borderColor = "var(--border)", 600);
+  };
+});
+
+$("btn-copy-prompt").onclick = () => {
+  const text = $("prompt-en").value || $("prompt").value;
+  if (!text) return;
+  navigator.clipboard.writeText(text);
+  $("btn-copy-prompt").textContent = "已复制!";
+  setTimeout(() => $("btn-copy-prompt").textContent = "复制", 1500);
+};
+
+$("btn-clear-en").onclick = () => {
+  $("prompt-en").value = "";
+  $("prompt-en").placeholder = "已清空。留空时系统将在生图前自动调用 LLM 翻译。";
+};
+
+// 反向提示词折叠与预设
+$("neg-toggle").onclick = () => {
+  const box = $("neg-content");
+  box.hidden = !box.hidden;
+  $("neg-toggle-arrow").textContent = box.hidden ? "展开 ▼" : "收起 ▲";
+};
+
+const NEG_PRESETS = {
+  std: "watermark, text, blurry, low quality, jpeg artifacts, deformed, extra limbs, bad anatomy, bad hands, missing fingers, poorly drawn face",
+  real: "cartoon, illustration, 3d render, anime, painting, deformed, bad skin, blurry, watermark, bad hands, mutated fingers, plastic skin",
+  anime: "photorealistic, real life, low quality, worst quality, ugly, deformed, blurry, bad anatomy, extra limbs, watermark",
+  vid: "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly, jerky motion, flickering"
+};
+$("neg-preset-std").onclick = () => $("negative-prompt").value = NEG_PRESETS.std;
+$("neg-preset-real").onclick = () => $("negative-prompt").value = NEG_PRESETS.real;
+$("neg-preset-anime").onclick = () => $("negative-prompt").value = NEG_PRESETS.anime;
+$("neg-preset-vid").onclick = () => $("negative-prompt").value = NEG_PRESETS.vid;
+
+// 比例快捷切换
+document.querySelectorAll(".ratio-grid .ratio-btn").forEach(rb => {
+  rb.onclick = () => {
+    document.querySelectorAll(".ratio-grid .ratio-btn").forEach(b => b.classList.remove("active"));
+    rb.classList.add("active");
+    $("size").value = rb.dataset.wh;
+    updateEstimate();
+  };
+});
+
+// 滑块监听
+$("denoise").oninput = () => $("denoise-val").textContent = (+$("denoise").value).toFixed(2);
+$("strength").oninput = () => $("strength-val").textContent = (+$("strength").value).toFixed(2);
+
+// 种子按钮
+$("btn-rand-seed").onclick = () => $("seed").value = Math.floor(Math.random() * 2147483647);
+$("btn-zero-seed").onclick = () => $("seed").value = 0;
+
+function updateEstimate() {
+  if (mode === "image") {
+    $("est-time").textContent = useRef
+      ? "预计耗时：~40-54 秒 (SDXL 图生图)"
+      : "预计耗时：~45-54 秒 (SDXL 1024 纯出图)";
+  } else {
+    const frames = +$("length").value;
+    const base = frames <= 49 ? 48 : frames <= 81 ? 85 : 110;
+    $("est-time").textContent = useRef
+      ? `预计耗时：~${base} 秒 (仅跑 LTX-Video 视频模型)`
+      : `预计耗时：~${48 + base} 秒 (SDXL 先出首帧 + LTX-Video 视频合成)`;
+  }
+}
+$("length").onchange = updateEstimate;
+$("steps").onchange = updateEstimate;
+
+// ---------- 参考图管理 ----------
+document.querySelectorAll(".ref-tabs .ref-tab").forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll(".ref-tabs .ref-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    loadPresets(tab.dataset.src);
+  };
+});
+
+async function loadPresets(source) {
+  $("ref-grid").dataset.loaded = "1";
+  $("ref-grid").innerHTML = '<p class="hint">加载中…</p>';
+  try {
+    const items = await api("/api/presets?source=" + source);
+    if (!items.length) {
+      $("ref-grid").innerHTML = '<p class="hint">该目录下暂无图片，请在上方上传或先文生图生成一张。</p>';
+      return;
+    }
+    $("ref-grid").innerHTML = items.map((it, idx) => {
+      const q = `/api/preview?source=${encodeURIComponent(it.source)}&name=${encodeURIComponent(it.name)}&subfolder=${encodeURIComponent(it.subfolder || "")}`;
+      return `<img data-idx="${idx}" loading="lazy" src="${q}" alt="${esc(it.name)}" title="${esc(it.name)}" />`;
+    }).join("");
+
+    $("ref-grid")._items = items;
+    document.querySelectorAll("#ref-grid img").forEach(el => {
+      el.onclick = () => {
+        const item = items[+el.dataset.idx];
+        selectReference(item, el);
+      };
+    });
+  } catch (err) {
+    $("ref-grid").innerHTML = `<p class="hint warn">加载失败：${esc(err.message)}</p>`;
+  }
+}
+
+function selectReference(item, imgEl) {
+  selectedRef = item;
+  refNaturalDims = null;
+  document.querySelectorAll("#ref-grid img").forEach(img => img.classList.toggle("selected", img === imgEl));
+
+  const url = `/api/preview?source=${encodeURIComponent(item.source)}&name=${encodeURIComponent(item.name)}&subfolder=${encodeURIComponent(item.subfolder || "")}`;
+  $("ref-selected-img").src = url;
+  $("ref-selected-name").textContent = item.name;
+  $("ref-preview-bar").hidden = false;
+
+  const probe = new Image();
+  probe.onload = () => {
+    refNaturalDims = { w: probe.naturalWidth, h: probe.naturalHeight };
+    $("ref-selected-dim").textContent = `${probe.naturalWidth} × ${probe.naturalHeight} px`;
+  };
+  probe.src = url;
+}
+
+// 拖拽与点击上传
+$("dropzone").onclick = () => $("file-input").click();
+$("dropzone").ondragover = e => { e.preventDefault(); $("dropzone").style.borderColor = "var(--accent)"; };
+$("dropzone").ondragleave = () => { $("dropzone").style.borderColor = "var(--border-light)"; };
+$("dropzone").ondrop = e => {
+  e.preventDefault();
+  $("dropzone").style.borderColor = "var(--border-light)";
+  if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
+};
+$("file-input").onchange = () => {
+  if ($("file-input").files.length) uploadFile($("file-input").files[0]);
+};
+
+async function uploadFile(file) {
+  const fd = new FormData();
+  fd.append("file", file);
+  $("ref-grid").innerHTML = '<p class="hint">正在上传图片并注册进工作台…</p>';
+  try {
+    const it = await api("/api/upload", { method: "POST", body: fd });
+    document.querySelectorAll(".ref-tabs .ref-tab").forEach(t => t.classList.toggle("active", t.dataset.src === "ours"));
+    await loadPresets("ours");
+    const idx = ($("ref-grid")._items || []).findIndex(x => x.name === it.name);
+    if (idx >= 0) {
+      selectReference($("ref-grid")._items[idx], document.querySelectorAll("#ref-grid img")[idx]);
+    }
+  } catch (err) {
+    alert("上传失败: " + err.message);
+    loadPresets("ours");
+  }
+  $("file-input").value = "";
+}
+
+// ---------- 任务生成主链路 ----------
+$("go-btn").onclick = () => triggerGeneration();
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey && e.key === "Enter") {
+    e.preventDefault();
+    triggerGeneration();
+  }
+});
+
+async function triggerGeneration() {
+  if (isGenerating) return;
+  if (useRef && !selectedRef) {
+    alert("请先选择或上传一张参考图！");
+    return;
+  }
+  const prompt = $("prompt").value.trim();
+  const prompt_en = $("prompt-en").value.trim();
+  if (!prompt && !prompt_en) {
+    alert("请输入画面描述提示词！");
+    return;
+  }
+
+  const [w, h] = $("size").value.split("x").map(Number);
+  const [vw, vh] = $("vsize").value.split("x").map(Number);
+
+  const body = {
+    mode,
+    prompt: prompt,
+    prompt_en: prompt_en,
+    style: $("prompt-style").value,
+    negative_prompt: $("negative-prompt").value.trim(),
+    cfg: +$("cfg").value || 6.0,
+    width: w, height: h,
+    steps: +$("steps").value || 25,
+    seed: +$("seed").value || 0,
+    v_width: vw, v_height: vh,
+    length: +$("length").value || 49,
+    v_steps: +$("vsteps").value || 20,
+    denoise: +$("denoise").value || 0.75,
+    strength: +$("strength").value || 1.0,
+    ref: useRef ? selectedRef : null,
+    ref_width: useRef && refNaturalDims ? refNaturalDims.w : 0,
+    ref_height: useRef && refNaturalDims ? refNaturalDims.h : 0,
+  };
+
+  // UI 进入生成状态：
+  // 1) 立即清空并隐藏上一任务的图片/视频，彻底不展示旧图
+  // 2) 立即隐藏上一任务的元信息卡片
+  // 3) 激活干净的动态创作中画卷
+  isGenerating = true;
+  $("go-btn").disabled = true;
+  $("go-text").textContent = "正在计算生成中…";
+  $("go-icon").innerHTML = '<div class="spinner"></div>';
+
+  $("hero-placeholder").style.display = "none";
+  $("hero-result-view").hidden = true;
+  $("hero-result-view").innerHTML = ""; // 彻底清空上一任务的 DOM 图片/视频
+  $("hero-info").hidden = true;          // 隐藏旧任务的提示词与下载按钮
+  $("hero-generating-view").hidden = false; // 呈现全新的创作舞台
+  $("progress-status-text").textContent = "正在提交任务到 ComfyUI…";
+  $("progress-telemetry").textContent = lastGpuTelemetryText;
+  setStepProgress(1);
+
+  elapsedSeconds = 0;
+  $("progress-elapsed").textContent = "⏱️ 已耗时 0s";
+  elapsedTimer = setInterval(() => {
+    elapsedSeconds++;
+    $("progress-elapsed").textContent = `⏱️ 已耗时 ${elapsedSeconds}s`;
+  }, 1000);
+
+  try {
+    const { id } = await api("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    pollTimer = setInterval(async () => {
+      try {
+        const job = await api("/api/jobs/" + id);
+        updateJobProgress(job);
+
+        if (job.state !== "running") {
+          clearInterval(pollTimer);
+          clearInterval(elapsedTimer);
+          isGenerating = false;
+          $("go-btn").disabled = false;
+          $("go-text").textContent = "开始生成";
+          $("go-icon").textContent = "🚀";
+          $("hero-generating-view").hidden = true;
+
+          renderHeroStage(job);
+          refreshGallery();
+          if (useRef) loadPresets("ours");
+        }
+      } catch (err) {
+        // 瞬间网络抖动忽略
+      }
+    }, 1800);
+  } catch (err) {
+    alert("提交任务失败：" + err.message);
+    isGenerating = false;
+    clearInterval(elapsedTimer);
+    $("go-btn").disabled = false;
+    $("go-text").textContent = "开始生成";
+    $("go-icon").textContent = "🚀";
+    $("hero-generating-view").hidden = true;
+    $("hero-placeholder").style.display = "flex";
+  }
+}
+
+function setStepProgress(stepNum) {
+  for (let i = 1; i <= 3; i++) {
+    const el = $("step-" + i);
+    el.classList.toggle("active", i === stepNum);
+    el.classList.toggle("done", i < stepNum);
+  }
+}
+
+function updateJobProgress(job) {
+  const logs = job.logs || [];
+  const lastLog = logs[logs.length - 1] || "";
+  $("progress-status-text").textContent = lastLog || "ComfyUI 正在运算采样…";
+
+  if (lastLog.includes("LLM") || lastLog.includes("提示词")) {
+    setStepProgress(1);
+  } else if (lastLog.includes("文生图已提交") || lastLog.includes("以图生图已提交")) {
+    setStepProgress(2);
+  } else if (lastLog.includes("生图完成") || lastLog.includes("图生视频已提交")) {
+    setStepProgress(3);
+  }
+
+  // 同步日志窗口
+  $("logs-terminal").textContent = logs.join("\n");
+  $("logs-terminal").scrollTop = $("logs-terminal").scrollHeight;
+}
+
+// ---------- 结果主展示台渲染 ----------
+function renderHeroStage(job) {
+  currentHeroJob = job;
+  $("hero-placeholder").style.display = "none";
+  $("hero-generating-view").hidden = true;
+  $("hero-result-view").hidden = false;
+  $("hero-info").hidden = false;
+
+  const isVideo = job.mode === "video";
+  const output = isVideo ? job.video : job.image;
+
+  if (job.error) {
+    $("hero-result-view").innerHTML = `
+      <div style="padding:2.5rem;text-align:center;color:var(--danger)">
+        <div style="font-size:2.5rem;margin-bottom:.5rem">⚠️</div>
+        <div style="font-size:1rem;font-weight:700">生成出错</div>
+        <div class="hint warn" style="max-width:500px;margin:.6rem auto">${esc(job.error)}</div>
+      </div>
+    `;
+    return;
+  }
+
+  if (!output) return;
+
+  const fileUrl = `/outputs/${output.file}`;
+  if (isVideo) {
+    $("hero-result-view").innerHTML = `
+      <video src="${fileUrl}" controls autoplay loop muted playsinline></video>
+    `;
+  } else {
+    $("hero-result-view").innerHTML = `
+      <img src="${fileUrl}" alt="生成图片" id="hero-img-el" />
+    `;
+  }
+
+  $("hero-type-badge").textContent = isVideo ? "🎬 视频" : "🎨 图片";
+  $("hero-dim-badge").textContent = output.width ? `${output.width} × ${output.height}` : "HD";
+  $("hero-time-badge").textContent = `耗时 ${output.seconds}s`;
+  $("hero-seed-badge").textContent = `种子: ${job.seed}`;
+
+  $("hero-prompt-box").innerHTML = `
+    <div style="font-size:.72rem;color:var(--accent);margin-bottom:.2rem">【原始需求】: ${esc(job.prompt_raw)}</div>
+    <div style="font-size:.75rem;color:#e2e8f0">【模型提示词】: ${esc(job.prompt_en || job.prompt_raw)}</div>
+  `;
+
+  $("hero-download-btn").href = fileUrl;
+  $("hero-download-btn").download = output.file;
+}
+
+// 一键流转动作
+$("hero-to-video-btn").onclick = () => {
+  if (!currentHeroJob || !currentHeroJob.image) return;
+  document.querySelector('.mode-btn[data-mode="video"][data-ref="1"]').click();
+  const item = { source: "ours", name: currentHeroJob.image.file, subfolder: "" };
+  selectReference(item, null);
+  if (currentHeroJob.prompt_raw) $("prompt").value = currentHeroJob.prompt_raw;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+$("hero-to-i2i-btn").onclick = () => {
+  if (!currentHeroJob || !currentHeroJob.image) return;
+  document.querySelector('.mode-btn[data-mode="image"][data-ref="1"]').click();
+  const item = { source: "ours", name: currentHeroJob.image.file, subfolder: "" };
+  selectReference(item, null);
+  if (currentHeroJob.prompt_raw) $("prompt").value = currentHeroJob.prompt_raw;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+$("hero-reuse-btn").onclick = () => {
+  if (!currentHeroJob) return;
+  if (currentHeroJob.prompt_raw) $("prompt").value = currentHeroJob.prompt_raw;
+  if (currentHeroJob.prompt_en) $("prompt-en").value = currentHeroJob.prompt_en;
+  if (currentHeroJob.seed) $("seed").value = currentHeroJob.seed;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+// ---------- 画廊与产物资产 ----------
+let currentGalleryFilter = "all";
+document.querySelectorAll(".gallery-filter-row .filter-pill[data-filter]").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".gallery-filter-row .filter-pill[data-filter]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentGalleryFilter = btn.dataset.filter;
+    renderGalleryItems();
+  };
+});
+$("btn-refresh-gallery").onclick = () => refreshGallery();
+
+let galleryData = [];
+async function refreshGallery() {
+  try {
+    galleryData = await api("/api/gallery");
+    renderGalleryItems();
+  } catch (err) {
+    $("gallery-grid").innerHTML = `<p class="hint">读取画廊失败: ${esc(err.message)}</p>`;
+  }
+}
+
+function renderGalleryItems() {
+  const filtered = galleryData.filter(item => {
+    if (currentGalleryFilter === "image") return item.type === "image";
+    if (currentGalleryFilter === "video") return item.type === "video";
+    return true;
+  });
+
+  if (!filtered.length) {
+    $("gallery-grid").innerHTML = '<p class="hint">当前分类暂无产物</p>';
+    return;
+  }
+
+  $("gallery-grid").innerHTML = filtered.map((it, idx) => {
+    const isV = it.type === "video";
+    const media = isV
+      ? `<video src="${it.url}" muted preload="metadata"></video><span class="badge">视频</span>`
+      : `<img src="${it.url}" alt="${esc(it.file)}" loading="lazy" /><span class="badge">图片</span>`;
+    return `<div class="gallery-item" data-idx="${idx}">${media}</div>`;
+  }).join("");
+
+  document.querySelectorAll(".gallery-item").forEach(el => {
+    el.onclick = () => {
+      const it = filtered[+el.dataset.idx];
+      loadGalleryItemToStage(it);
+    };
+  });
+}
+
+function loadGalleryItemToStage(item) {
+  const isVideo = item.type === "video";
+  const fakeJob = {
+    mode: isVideo ? "video" : "image",
+    seed: "—",
+    prompt_raw: item.file,
+    prompt_en: "",
+    logs: [`从画廊载入产物 ${item.file}`],
+    image: !isVideo ? { file: item.file, seconds: 0 } : null,
+    video: isVideo ? { file: item.file, seconds: 0 } : null,
+  };
+  renderHeroStage(fakeJob);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// 日志折叠
+$("logs-header").onclick = () => {
+  const term = $("logs-terminal");
+  term.hidden = !term.hidden;
+  $("logs-toggle-arrow").textContent = term.hidden ? "展开 ▼" : "收起 ▲";
+};
+
+// ---------- 系统设置模态框 ----------
+async function checkSystemStatus() {
+  try {
+    const st = await api("/api/status");
+    const llm = st.llm || {};
+    if (llm.ready) {
+      $("llm-dot").className = "status-dot green";
+      $("llm-text").textContent = `LLM 已就绪 (${llm.model || "Active"})`;
+    } else if (llm.enabled && !llm.has_key) {
+      $("llm-dot").className = "status-dot red";
+      $("llm-text").textContent = "LLM 待填 Key";
+    } else {
+      $("llm-dot").className = "status-dot red";
+      $("llm-text").textContent = "LLM 未就绪";
+    }
+
+    fillSettingsForm(llm);
+  } catch (err) {
+    $("comfy-dot").className = "status-dot red";
+    $("comfy-text").textContent = "后端未连接";
+  }
+}
+
+function fillSettingsForm(llm) {
+  $("llm-enabled").checked = !!llm.enabled;
+  $("llm-base").value = llm.base_url || "";
+  $("llm-model").value = llm.model || "";
+  $("llm-key").value = "";
+  $("llm-key").placeholder = llm.has_key ? `已保存 (${llm.api_key_masked})，留空表示不改` : "粘贴你的 API Key";
+}
+
+// 设置模态框交互
+$("open-settings-btn").onclick = () => $("settings-modal").classList.add("open");
+$("llm-status-pill").onclick = () => $("settings-modal").classList.add("open");
+$("close-settings-btn").onclick = () => $("settings-modal").classList.remove("open");
+$("settings-modal").onclick = e => { if (e.target === $("settings-modal")) $("settings-modal").classList.remove("open"); };
+
+$("provider-select").onchange = () => {
+  const opt = $("provider-select").selectedOptions[0];
+  if (!opt || !opt.dataset.base) return;
+  $("llm-base").value = opt.dataset.base;
+  $("llm-model").value = opt.dataset.model;
+};
+
+// 获取可用模型列表
+$("btn-fetch-models").onclick = async () => {
+  const btn = $("btn-fetch-models");
+  btn.disabled = true;
+  btn.textContent = "获取中…";
+  try {
+    const res = await api("/api/settings/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        base_url: $("llm-base").value.trim(),
+        api_key: $("llm-key").value.trim()
+      })
+    });
+    if (res.ok && res.models && res.models.length) {
+      const dl = $("model-datalist");
+      dl.innerHTML = res.models.map(m => `<option value="${m}"></option>`).join("");
+      alert(`成功获取 ${res.models.length} 个模型！已填入下拉建议列表。`);
+    } else {
+      alert("获取失败：" + (res.error || "未返回模型列表，请确认 Base URL 与 Key"));
+    }
+  } catch (err) {
+    alert("请求出错：" + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🔄 获取可用模型列表";
+  }
+};
+
+// 保存设置
+$("btn-save-settings").onclick = async () => {
+  const body = {
+    enabled: $("llm-enabled").checked,
+    base_url: $("llm-base").value.trim(),
+    model: $("llm-model").value.trim(),
+    api_key: $("llm-key").value.trim(),
+  };
+  try {
+    const l = await api("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    fillSettingsForm(l);
+    checkSystemStatus();
+    $("llm-test-result").textContent = "✅ 配置已成功保存至本机 config.json！";
+    $("llm-test-result").className = "hint ok";
+  } catch (err) {
+    alert("保存失败: " + err.message);
+  }
+};
+
+// 清除 Key
+$("btn-clear-key").onclick = async () => {
+  if (!confirm("确定清除已保存的 API Key 吗？")) return;
+  try {
+    const l = await api("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clear_key: true, api_key: "" })
+    });
+    fillSettingsForm(l);
+    checkSystemStatus();
+    $("llm-test-result").textContent = "已清除 Key。";
+  } catch (err) {
+    alert("清除失败: " + err.message);
+  }
+};
+
+// 测试设置连接
+$("btn-test-settings").onclick = async () => {
+  const btn = $("btn-test-settings");
+  btn.disabled = true;
+  btn.textContent = "测试中…";
+  $("llm-test-result").textContent = "";
+
+  try {
+    const res = await api("/api/settings/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: $("prompt").value.trim() || "一只坐在雪地里的红色狐狸",
+        style: $("prompt-style").value
+      })
+    });
+
+    if (res.ok && res.used) {
+      $("llm-test-result").textContent = `🎉 测试成功！英文改写：${res.out}`;
+      $("llm-test-result").className = "hint ok";
+    } else {
+      $("llm-test-result").textContent = `❌ 测试未通过：${res.error || "未返回结果"}`;
+      $("llm-test-result").className = "hint warn";
+    }
+  } catch (err) {
+    $("llm-test-result").textContent = "请求失败: " + err.message;
+    $("llm-test-result").className = "hint warn";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "⚡ 测试连接";
+  }
+};
+
+// 页面初始化
+checkSystemStatus();
+refreshGallery();
+</script>
+</body>
+</html>
