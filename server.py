@@ -360,6 +360,29 @@ def clean_llm_output(text):
 
 # ---------- ComfyUI 工作流 ----------
 
+def find_lightning_lora():
+    """查找本地是否存有 SDXL-Lightning 4-step / 8-step LoRA 文件"""
+    comfy_dir = CONFIG.get("comfy_dir") or resolve_comfy_dir()
+    loras_dir = os.path.join(comfy_dir.replace("\\", "/"), "models", "loras")
+    candidates = []
+    if os.path.isdir(loras_dir):
+        for root, _, files in os.walk(loras_dir):
+            for f in files:
+                if f.lower().endswith((".safetensors", ".pt", ".ckpt")):
+                    rel = os.path.relpath(os.path.join(root, f), loras_dir).replace("\\", "/")
+                    candidates.append(rel)
+    # 优先匹配 4step
+    for c in candidates:
+        low = c.lower()
+        if "lightning" in low and "4step" in low:
+            return c
+    # 次优先匹配包含 lightning 的其他 LoRA
+    for c in candidates:
+        if "lightning" in c.lower():
+            return c
+    return None
+
+
 def wf_image(
     prompt,
     width,
@@ -375,8 +398,9 @@ def wf_image(
     checkpoint=None,
     lora_name=None,
     lora_strength=1.0,
+    lightning=False,
 ):
-    """init=None 走纯文生图；init 给了 ComfyUI input 目录里的文件名则走以图生图。支持自定义底模、采样器及可选 LoRA。"""
+    """init=None 走纯文生图；init 给了 ComfyUI input 目录里的文件名则走以图生图。支持自定义底模、采样器、SDXL-Lightning 蒸馏加速及可选角色 LoRA。"""
     negative = neg.strip() if neg and neg.strip() else DEFAULT_NEG_IMAGE
     ckpt = (checkpoint or "").strip() or CONFIG["image_checkpoint"]
 
@@ -386,8 +410,29 @@ def wf_image(
     model_src = ["1", 0]
     clip_src = ["1", 1]
 
-    if lora_name and str(lora_name).strip():
+    # 检查是否开启 SDXL-Lightning 极速蒸馏模式
+    is_lightning = bool(lightning)
+    lightning_lora = None
+    if is_lightning and "lightning" not in ckpt.lower():
+        lightning_lora = find_lightning_lora() or "sdxl_lightning_4step_lora.safetensors"
+
+    if lightning_lora:
         nodes["10"] = {
+            "class_type": "LoraLoader",
+            "inputs": {
+                "model": model_src,
+                "clip": clip_src,
+                "lora_name": lightning_lora,
+                "strength_model": 1.0,
+                "strength_clip": 1.0,
+            },
+        }
+        model_src = ["10", 0]
+        clip_src = ["10", 1]
+
+    if lora_name and str(lora_name).strip():
+        char_node_id = "11" if lightning_lora else "10"
+        nodes[char_node_id] = {
             "class_type": "LoraLoader",
             "inputs": {
                 "model": model_src,
@@ -397,8 +442,8 @@ def wf_image(
                 "strength_clip": float(lora_strength),
             },
         }
-        model_src = ["10", 0]
-        clip_src = ["10", 1]
+        model_src = [char_node_id, 0]
+        clip_src = [char_node_id, 1]
 
     nodes["2"] = {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": clip_src}}
     nodes["3"] = {"class_type": "CLIPTextEncode", "inputs": {"text": negative, "clip": clip_src}}
@@ -424,6 +469,9 @@ def wf_image(
         }
         latent_src = ["4", 0]
 
+    actual_sampler = sampler or ("euler" if is_lightning else "dpmpp_2m_sde")
+    actual_scheduler = scheduler or ("sgm_uniform" if is_lightning else "karras")
+
     nodes["5"] = {
         "class_type": "KSampler",
         "inputs": {
@@ -432,10 +480,10 @@ def wf_image(
             "negative": ["3", 0],
             "latent_image": latent_src,
             "seed": seed,
-            "steps": steps,
+            "steps": int(steps),
             "cfg": float(cfg),
-            "sampler_name": sampler or "dpmpp_2m_sde",
-            "scheduler": scheduler or "karras",
+            "sampler_name": actual_sampler,
+            "scheduler": actual_scheduler,
             "denoise": denoise,
         },
     }
@@ -1005,6 +1053,7 @@ def stage_image(job, prompt, params, seed, ref=None):
     else:
         w, h, init, temp = params["width"], params["height"], None, False
     try:
+        is_lightning = bool(params.get("lightning", False))
         wf = wf_image(
             prompt,
             w,
@@ -1014,15 +1063,18 @@ def stage_image(job, prompt, params, seed, ref=None):
             init=init,
             denoise=params["denoise"] if init else 1.0,
             neg=params.get("negative_prompt"),
-            cfg=params.get("cfg", 6.0),
-            sampler=params.get("sampler", "dpmpp_2m_sde"),
-            scheduler=params.get("scheduler", "karras"),
+            cfg=params.get("cfg", 1.5 if is_lightning else 6.0),
+            sampler=params.get("sampler", "euler" if is_lightning else "dpmpp_2m_sde"),
+            scheduler=params.get("scheduler", "sgm_uniform" if is_lightning else "karras"),
             checkpoint=params.get("checkpoint"),
             lora_name=params.get("lora_name"),
             lora_strength=params.get("lora_strength", 1.0),
+            lightning=is_lightning,
         )
         pid = comfy_post("/prompt", {"prompt": wf, "client_id": job["id"]})["prompt_id"]
         info_parts = [f"{'以图生图' if init else '文生图'}已提交 {w}x{h}"]
+        if is_lightning:
+            info_parts.append(f"⚡ SDXL-Lightning 4步极速加速 (CFG {params.get('cfg', 1.5)})")
         if params.get("checkpoint"):
             info_parts.append(f"底模: {params['checkpoint']}")
         if params.get("lora_name"):
@@ -1626,6 +1678,7 @@ class Handler(BaseHTTPRequestHandler):
                 "checkpoint": str(body.get("checkpoint") or "").strip() or None,
                 "lora_name": str(body.get("lora_name") or "").strip() or None,
                 "lora_strength": float(body.get("lora_strength", 1.0)),
+                "lightning": bool(body.get("lightning", False)),
                 "v_width": int(body.get("v_width", 768)),
                 "v_height": int(body.get("v_height", 512)),
                 "length": int(body.get("length", 49)),

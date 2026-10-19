@@ -51,7 +51,18 @@
 - **连击加队与动态按钮文案**：
   - 显卡忙碌时，生成按钮智能变为「➕ 加入生成队列 (X 个排队中)」，无需等待上一张出图即可继续编写下一个创意，自动串联流水线出图。
 
-### 4. ⚡ 硬件实时遥测与沉浸式体验
+### 4. ⚡ SDXL-Lightning 4 步极速蒸馏加速 (Ultra-Fast 15s Generation)
+- **字节跳动 4-Step 蒸馏技术**：
+  - 运算步数从传统 25~30 步砍至仅需 **4 步**，计算量节省 80%；
+  - 在 RTX 3050 Laptop (4GB 显存) 上，单张生成耗时从 **50~70 秒直接压缩至 12~18 秒**；
+  - 保持 832×1216 或 1024×1024 原生高清分辨率，构图与细节质感几乎无损；
+- **免下载大底模，轻量 LoRA 外挂即用**：
+  - 支持仅下载 ~380MB 的官方 `sdxl_lightning_4step_lora.safetensors`，无需耗费数十 GB 重新下载底模；
+  - **双 LoRA 智能链式串联**：在二次元角色工坊中，可同时挂载 Lightning 加速 LoRA 与角色人物 LoRA，兼得极速与精准还原；
+- **一键式开关联动**：
+  - 勾选「⚡ 极速出图」开关后，系统自动智能锁定最佳三参数：**4 步采样、CFG 1.5、Euler 采样器 + SGM Uniform 调度器**。
+
+### 5. 🖥️ 硬件实时遥测与沉浸式体验
 - **顶栏遥测条**：实时监测 **CPU**、**内存**、**GPU 显存 (VRAM)**、**显卡功耗 (Watts)** 与 **核心温度**。
 - **独立创作画卷**：提交新生成任务时自动重置舞台，展示实时步进器与渲染遥测。
 
@@ -154,6 +165,7 @@ python server.py
 | **视频底模** | `ltx-video-2b-v0.9.5.safetensors` | `ComfyUI/models/checkpoints/` | LTX-Video 2B 扩散模型，用于图生视频与文生视频 | 必须 (视频功能) |
 | **文本编码器** | `t5xxl_fp8_e4m3fn_scaled.safetensors` | `ComfyUI/models/clip/` | LTX-Video 专属 T5 编码器，**缺失会导致视频报节点错误** | 必须 (视频功能) |
 | **二次元底模** | `waiIllustriousSDXL_v160.safetensors` | `ComfyUI/models/checkpoints/` | Illustrious / NoobAI 体系模型，Danbooru 角色二创首选 | 推荐 |
+| **极速加速 LoRA** | `sdxl_lightning_4step_lora.safetensors` | `ComfyUI/models/loras/` | 字节跳动 SDXL-Lightning 4步极速加速 LoRA (~380MB)，单图 15s 出图 | 强烈推荐 |
 | **角色 LoRA** | `*.safetensors` | `ComfyUI/models/loras/` | 针对特定二次元角色或风格的 LoRA 模型 | 按需添加 |
 
 ---

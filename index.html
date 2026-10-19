@@ -848,6 +848,30 @@
     transform: none;
   }
 
+  /* SDXL-Lightning 4-step Speed Card */
+  .lightning-toggle-card {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(59, 130, 246, 0.05));
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    border-radius: 9px;
+    padding: 0.65rem 0.8rem;
+    margin-top: 0.75rem;
+    box-shadow: 0 2px 10px rgba(6, 182, 212, 0.08);
+    transition: all 0.2s;
+  }
+  .lightning-toggle-card:hover {
+    border-color: rgba(6, 182, 212, 0.6);
+    box-shadow: 0 4px 14px rgba(6, 182, 212, 0.16);
+  }
+  .anime-lightning-card {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.09), rgba(168, 85, 247, 0.06));
+    border-color: rgba(236, 72, 153, 0.38);
+    box-shadow: 0 2px 10px rgba(236, 72, 153, 0.08);
+  }
+  .anime-lightning-card:hover {
+    border-color: rgba(236, 72, 153, 0.65);
+    box-shadow: 0 4px 14px rgba(236, 72, 153, 0.18);
+  }
+
   /* Queue Card & Floating Toasts */
   .queue-card {
     background: #0f172a;
@@ -1358,15 +1382,29 @@
         </div>
       </div>
 
+      <!-- ⚡ SDXL-Lightning 4-step 极速加速 -->
+      <div class="lightning-toggle-card" id="lightning-card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin:0;font-weight:700;color:#38bdf8">
+            <input type="checkbox" id="toggle-lightning" style="width:16px;height:16px;accent-color:#06b6d4;cursor:pointer" checked />
+            <span>⚡ SDXL-Lightning 极速加速 (4步 / ~15秒)</span>
+          </label>
+          <span class="meta-pill highlight" id="lightning-badge" style="font-size:.68rem">4-Step 蒸馏</span>
+        </div>
+        <div class="hint" style="margin-top:.3rem;color:#94a3b8;font-size:.72rem">
+          字节跳动 SDXL 蒸馏加速技术，自动锁定 4 步、CFG 1.5、Euler+sgm_uniform，耗时缩减 80%！
+        </div>
+      </div>
+
       <!-- 步数 & CFG -->
       <div class="row-2" style="margin-top:.75rem">
         <div>
           <label>采样步数 (Steps)</label>
-          <input type="number" id="steps" value="25" min="10" max="50" />
+          <input type="number" id="steps" value="4" min="1" max="50" data-prev-val="25" />
         </div>
         <div>
           <label>提示词相关性 (CFG Scale)</label>
-          <input type="number" id="cfg" value="6.0" min="1.0" max="15.0" step="0.5" />
+          <input type="number" id="cfg" value="1.5" min="1.0" max="15.0" step="0.5" data-prev-val="6.0" />
         </div>
       </div>
 
@@ -1375,7 +1413,7 @@
       <div class="seed-box">
         <input type="number" id="seed" value="0" min="0" />
         <button class="btn-ghost" id="btn-rand-seed" title="随机生成新种子">🎲 随机</button>
-        <button class="btn-ghost" id="btn-zero-seed" title="设为0（完全随机）">↺ 0</button>
+        <button class="btn-zero-seed btn-ghost" id="btn-zero-seed" title="设为0（完全随机）">↺ 0</button>
       </div>
 
       <!-- 生成触发大按钮 -->
@@ -1384,7 +1422,7 @@
         <span id="go-text">开始生成</span>
         <span style="font-size:.75rem;opacity:.7;font-weight:400">(Ctrl + Enter)</span>
       </button>
-      <div class="hint" id="est-time" style="text-align:center;margin-top:.5rem">预计耗时：~50 秒</div>
+      <div class="hint" id="est-time" style="text-align:center;margin-top:.5rem">预计耗时：~15 秒 (⚡ SDXL-Lightning 极速加速)</div>
     </div>
   </section>
 
@@ -1554,15 +1592,29 @@
         <option value="1344x768">1344 × 768 (电影级超宽屏)</option>
       </select>
 
+      <!-- SDXL-Lightning 二次元极速加速 -->
+      <div class="lightning-toggle-card anime-lightning-card" id="anime-lightning-card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin:0;font-weight:700;color:#f472b6">
+            <input type="checkbox" id="anime-toggle-lightning" style="width:16px;height:16px;accent-color:#ec4899;cursor:pointer" checked />
+            <span>⚡ SDXL-Lightning 极速出图 (4步 / ~15秒)</span>
+          </label>
+          <span class="meta-pill" style="background:rgba(236,72,153,0.18);border-color:rgba(236,72,153,0.4);color:#f472b6;font-size:.68rem">4-Step 蒸馏</span>
+        </div>
+        <div class="hint" style="margin-top:.3rem;color:#cbd5e1;font-size:.72rem">
+          二次元立绘急速秒出，自动配置 4 步与 CFG 1.5，即使叠加角色 LoRA 依然 15 秒出图！
+        </div>
+      </div>
+
       <!-- 采样步数 & CFG (预设针对动漫的最佳参数) -->
       <div class="row-2" style="margin-top:.75rem">
         <div>
           <label>采样步数 (Steps)</label>
-          <input type="number" id="anime-steps" value="28" min="15" max="50" />
+          <input type="number" id="anime-steps" value="4" min="1" max="50" data-prev-val="28" />
         </div>
         <div>
           <label>提示词引导度 (CFG)</label>
-          <input type="number" id="anime-cfg" value="7.5" min="2.0" max="15.0" step="0.5" />
+          <input type="number" id="anime-cfg" value="1.5" min="1.0" max="15.0" step="0.5" data-prev-val="7.5" />
         </div>
       </div>
 
@@ -1580,7 +1632,8 @@
         <div>
           <label>调度器 (Scheduler)</label>
           <select id="anime-scheduler">
-            <option value="normal" selected>Normal (标准)</option>
+            <option value="sgm_uniform" selected>SGM Uniform (Lightning 专配推荐)</option>
+            <option value="normal">Normal (标准)</option>
             <option value="karras">Karras</option>
           </select>
         </div>
@@ -2054,20 +2107,73 @@ $("btn-rand-seed").onclick = () => $("seed").value = Math.floor(Math.random() * 
 $("btn-zero-seed").onclick = () => $("seed").value = 0;
 
 function updateEstimate() {
+  const isLightning = $("toggle-lightning") ? $("toggle-lightning").checked : false;
   if (mode === "image") {
-    $("est-time").textContent = useRef
-      ? "预计耗时：~40-54 秒 (SDXL 图生图)"
-      : "预计耗时：~45-54 秒 (SDXL 1024 纯出图)";
+    if (isLightning) {
+      $("est-time").textContent = useRef
+        ? "预计耗时：~12-16 秒 (⚡ SDXL-Lightning 4步极速图生图)"
+        : "预计耗时：~12-18 秒 (⚡ SDXL-Lightning 4步极速出图)";
+    } else {
+      $("est-time").textContent = useRef
+        ? "预计耗时：~40-54 秒 (SDXL 标准图生图)"
+        : "预计耗时：~45-54 秒 (SDXL 1024 纯出图)";
+    }
   } else {
     const frames = +$("length").value;
     const base = frames <= 49 ? 48 : frames <= 81 ? 85 : 110;
     $("est-time").textContent = useRef
       ? `预计耗时：~${base} 秒 (仅跑 LTX-Video 视频模型)`
-      : `预计耗时：~${48 + base} 秒 (SDXL 先出首帧 + LTX-Video 视频合成)`;
+      : `预计耗时：~${(isLightning ? 15 : 48) + base} 秒 (SDXL 首帧 + LTX-Video 视频合成)`;
   }
 }
 $("length").onchange = updateEstimate;
 $("steps").onchange = updateEstimate;
+
+// SDXL-Lightning 4-step 极速加速联动控制
+function initLightningToggles() {
+  const toggleStd = $("toggle-lightning");
+  const toggleAnime = $("anime-toggle-lightning");
+
+  if (toggleStd) {
+    toggleStd.onchange = () => {
+      const active = toggleStd.checked;
+      if (active) {
+        $("steps").dataset.prevVal = $("steps").value;
+        $("cfg").dataset.prevVal = $("cfg").value;
+        $("steps").value = 4;
+        $("cfg").value = 1.5;
+        $("lightning-badge").textContent = "4-Step 蒸馏";
+      } else {
+        $("steps").value = $("steps").dataset.prevVal || 25;
+        $("cfg").value = $("cfg").dataset.prevVal || 6.0;
+        $("lightning-badge").textContent = "已关闭";
+      }
+      updateEstimate();
+    };
+  }
+
+  if (toggleAnime) {
+    toggleAnime.onchange = () => {
+      const active = toggleAnime.checked;
+      if (active) {
+        $("anime-steps").dataset.prevVal = $("anime-steps").value;
+        $("anime-cfg").dataset.prevVal = $("anime-cfg").value;
+        $("anime-sampler").dataset.prevVal = $("anime-sampler").value;
+        $("anime-scheduler").dataset.prevVal = $("anime-scheduler").value;
+        $("anime-steps").value = 4;
+        $("anime-cfg").value = 1.5;
+        $("anime-sampler").value = "euler";
+        $("anime-scheduler").value = "sgm_uniform";
+      } else {
+        $("anime-steps").value = $("anime-steps").dataset.prevVal || 28;
+        $("anime-cfg").value = $("anime-cfg").dataset.prevVal || 7.5;
+        $("anime-sampler").value = $("anime-sampler").dataset.prevVal || "euler";
+        $("anime-scheduler").value = $("anime-scheduler").dataset.prevVal || "normal";
+      }
+    };
+  }
+}
+initLightningToggles();
 
 // ---------- 参考图管理 ----------
 document.querySelectorAll(".ref-tabs .ref-tab").forEach(tab => {
@@ -2493,15 +2599,20 @@ async function triggerGeneration() {
   const [w, h] = $("size").value.split("x").map(Number);
   const [vw, vh] = $("vsize").value.split("x").map(Number);
 
+  const isLightning = $("toggle-lightning") ? $("toggle-lightning").checked : false;
+
   const body = {
     mode,
     prompt: prompt,
     prompt_en: prompt_en,
     style: $("prompt-style").value,
     negative_prompt: $("negative-prompt").value.trim(),
-    cfg: +$("cfg").value || 6.0,
+    cfg: +$("cfg").value || (isLightning ? 1.5 : 6.0),
     width: w, height: h,
-    steps: +$("steps").value || 25,
+    steps: +$("steps").value || (isLightning ? 4 : 25),
+    sampler: isLightning ? "euler" : "dpmpp_2m_sde",
+    scheduler: isLightning ? "sgm_uniform" : "karras",
+    lightning: isLightning,
     seed: +$("seed").value || 0,
     v_width: vw, v_height: vh,
     length: +$("length").value || 49,
@@ -3591,6 +3702,7 @@ async function triggerAnimeGeneration() {
   }
 
   const [w, h] = $("anime-size-select").value.split("x").map(Number);
+  const isAnimeLightning = $("anime-toggle-lightning") ? $("anime-toggle-lightning").checked : false;
   const ckpt = $("anime-checkpoint-select").value;
   const lora = animeCharSubmode === "lora" ? $("anime-lora-select").value : null;
   const loraStrength = +$("anime-lora-strength").value || 0.85;
@@ -3603,10 +3715,11 @@ async function triggerAnimeGeneration() {
     negative_prompt: negPrompt,
     width: w,
     height: h,
-    steps: +$("anime-steps").value || 28,
-    cfg: +$("anime-cfg").value || 7.5,
+    steps: +$("anime-steps").value || (isAnimeLightning ? 4 : 28),
+    cfg: +$("anime-cfg").value || (isAnimeLightning ? 1.5 : 7.5),
     sampler: $("anime-sampler").value || "euler",
-    scheduler: $("anime-scheduler").value || "normal",
+    scheduler: $("anime-scheduler").value || (isAnimeLightning ? "sgm_uniform" : "normal"),
+    lightning: isAnimeLightning,
     checkpoint: ckpt || null,
     lora_name: lora || null,
     lora_strength: loraStrength,
