@@ -24,8 +24,18 @@ except ImportError:
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(HERE, "outputs")
+UPLOAD_DIR = os.path.join(HERE, "uploads")
 CONFIG_PATH = os.path.join(HERE, "config.json")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# 自动将历史误保存在 outputs 目录中的参考图移入 uploads 目录
+for _fn in os.listdir(OUTPUT_DIR):
+    if "_up." in _fn or _fn.endswith("_up"):
+        try:
+            os.replace(os.path.join(OUTPUT_DIR, _fn), os.path.join(UPLOAD_DIR, _fn))
+        except Exception:
+            pass
 
 
 def load_config():
@@ -483,11 +493,135 @@ def list_presets(source):
     """列出能直接选来当参考图/首帧的现成图片。"""
     root_map = {
         "ours": OUTPUT_DIR,
+        "uploads": UPLOAD_DIR,
         "input": INPUT_DIR,
         "output": os.path.join(CONFIG["comfy_dir"].replace("\\", "/"), "output"),
     }
     root = root_map.get(source, OUTPUT_DIR)
     return [{"source": source, "name": it["name"], "subfolder": it["subfolder"]} for it in walk_images(root)]
+
+
+def save_job_meta(job):
+    """持久化保存任务的完整元数据到 outputs/{jid}.meta.json，保证重启/画廊检索时保留提示词与参数"""
+    try:
+        jid = job.get("id")
+        if not jid:
+            return
+        meta_data = {
+            "id": jid,
+            "mode": job.get("mode"),
+            "prompt_raw": job.get("prompt_raw", ""),
+            "prompt_en": job.get("prompt_en", ""),
+            "style": job.get("style", "photorealistic"),
+            "seed": job.get("seed", 0),
+            "params": dict(job.get("params") or {}),
+            "image": job.get("image"),
+            "video": job.get("video"),
+            "finished_at": job.get("finished_at") or time.time(),
+        }
+        meta_file = os.path.join(OUTPUT_DIR, f"{jid}.meta.json")
+        with open(meta_file, "w", encoding="utf-8") as f:
+            json.dump(meta_data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[WARN] Failed to save job meta for {job.get('id')}: {e}")
+
+
+def get_file_metadata(fn):
+    """获取产物的元数据 (prompt, seed, params)，优先从 {jid}.meta.json 读取，兜底从 PNG chunk 解析"""
+    jid = fn.split("_")[0]
+    meta_path = os.path.join(OUTPUT_DIR, f"{jid}.meta.json")
+    if os.path.isfile(meta_path):
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    # 检查内存中的 JOBS
+    with LOCK:
+        if jid in JOBS:
+            j = JOBS[jid]
+            return {
+                "id": jid,
+                "mode": j.get("mode"),
+                "prompt_raw": j.get("prompt_raw", ""),
+                "prompt_en": j.get("prompt_en", ""),
+                "style": j.get("style", "photorealistic"),
+                "seed": j.get("seed", 0),
+                "params": j.get("params", {}),
+            }
+
+    # 兜底：如果是 PNG 图片，尝试用 PIL 从 ComfyUI 内嵌的 prompt chunk 中恢复
+    ext = os.path.splitext(fn)[1].lower()
+    full_path = os.path.join(OUTPUT_DIR, fn)
+    if ext == ".png" and os.path.isfile(full_path):
+        try:
+            from PIL import Image
+            im = Image.open(full_path)
+            raw_prompt_json = im.info.get("prompt")
+            if raw_prompt_json:
+                p = json.loads(raw_prompt_json)
+                pos_prompt = ""
+                neg_prompt = ""
+                seed = 0
+                steps = 20
+                cfg = 6.0
+                denoise = 1.0
+                width = 1024
+                height = 1024
+
+                ksampler = None
+                for nid, node in p.items():
+                    if node.get("class_type") == "KSampler":
+                        ksampler = node
+                        break
+                if ksampler:
+                    inputs = ksampler.get("inputs", {})
+                    seed = inputs.get("seed", 0)
+                    steps = inputs.get("steps", 20)
+                    cfg = inputs.get("cfg", 6.0)
+                    denoise = inputs.get("denoise", 1.0)
+                    pos_link = inputs.get("positive", [])
+                    neg_link = inputs.get("negative", [])
+                    if pos_link and str(pos_link[0]) in p:
+                        pos_prompt = p[str(pos_link[0])].get("inputs", {}).get("text", "")
+                    if neg_link and str(neg_link[0]) in p:
+                        neg_prompt = p[str(neg_link[0])].get("inputs", {}).get("text", "")
+
+                for nid, node in p.items():
+                    ct = node.get("class_type")
+                    if ct in ("EmptyLatentImage", "ImageScale"):
+                        width = node.get("inputs", {}).get("width", width)
+                        height = node.get("inputs", {}).get("height", height)
+
+                meta = {
+                    "id": jid,
+                    "mode": "image",
+                    "prompt_raw": pos_prompt,
+                    "prompt_en": pos_prompt,
+                    "style": "photorealistic",
+                    "seed": seed,
+                    "params": {
+                        "steps": steps,
+                        "cfg": cfg,
+                        "denoise": denoise,
+                        "negative_prompt": neg_prompt,
+                        "width": width,
+                        "height": height,
+                        "seed": seed,
+                    },
+                }
+                # 写入缓存以加速后续访问
+                try:
+                    with open(meta_path, "w", encoding="utf-8") as f:
+                        json.dump(meta, f, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
+                return meta
+        except Exception:
+            pass
+
+    return {}
 
 
 def list_gallery(limit=100):
@@ -499,18 +633,27 @@ def list_gallery(limit=100):
         ext = os.path.splitext(fn)[1].lower()
         if ext not in (".png", ".jpg", ".jpeg", ".webp", ".mp4"):
             continue
+        # 严格过滤用户上传的临时参考图与元数据文件，绝不混入生成作品画廊
+        if "_up." in fn or fn.endswith("_up") or fn.endswith(".meta.json"):
+            continue
         full = os.path.join(OUTPUT_DIR, fn)
         try:
             st = os.stat(full)
         except OSError:
             continue
         is_video = ext == ".mp4"
+        meta = get_file_metadata(fn)
         found.append({
             "file": fn,
             "type": "video" if is_video else "image",
             "size": st.st_size,
             "mtime": st.st_mtime,
             "url": f"/outputs/{fn}",
+            "prompt_raw": meta.get("prompt_raw", ""),
+            "prompt_en": meta.get("prompt_en", ""),
+            "style": meta.get("style", "photorealistic"),
+            "seed": meta.get("seed", 0),
+            "params": meta.get("params", {}),
         })
     found.sort(key=lambda x: x["mtime"], reverse=True)
     return found[:limit]
@@ -539,13 +682,25 @@ def fetch_llm_models(base_url, api_key):
 
 def ref_blob(ref):
     """按 {source,name,subfolder} 把图片字节取回来。"""
-    if ref["source"] == "ours":
-        full = os.path.join(OUTPUT_DIR, os.path.basename(ref["name"]))
+    src = ref.get("source")
+    name = os.path.basename(ref.get("name", ""))
+    if src in ("upload", "uploads"):
+        full = os.path.join(UPLOAD_DIR, name)
         if not os.path.isfile(full):
-            raise FileNotFoundError(ref["name"])
+            full = os.path.join(OUTPUT_DIR, name)
+        if not os.path.isfile(full):
+            raise FileNotFoundError(name)
         with open(full, "rb") as f:
             return f.read()
-    q = urllib.parse.urlencode({"filename": ref["name"], "subfolder": ref.get("subfolder", ""), "type": ref["source"]})
+    if src == "ours":
+        full = os.path.join(OUTPUT_DIR, name)
+        if not os.path.isfile(full):
+            full = os.path.join(UPLOAD_DIR, name)
+        if not os.path.isfile(full):
+            raise FileNotFoundError(name)
+        with open(full, "rb") as f:
+            return f.read()
+    q = urllib.parse.urlencode({"filename": ref["name"], "subfolder": ref.get("subfolder", ""), "type": src})
     return fetch_binary(CONFIG["comfy_url"] + "/view?" + q, timeout=30)
 
 
@@ -784,8 +939,9 @@ def run_job(job):
         job["llm_error"] = llm_err
         job["prompt_en"] = prompt_en
         job["llm_used"] = used_llm
-        seed = params.pop("seed") or int(time.time()) % (2**31)
+        seed = params.get("seed") or int(time.time()) % (2**31)
         job["seed"] = seed
+        job["params"]["seed"] = seed
 
         if job["mode"] == "video":
             if ref is None:
@@ -799,6 +955,7 @@ def run_job(job):
             stage_image(job, prompt_en, params, seed, ref)
 
         job["state"] = "done"
+        save_job_meta(job)
     except Exception as e:
         job["state"] = "error"
         job["error"] = f"{type(e).__name__}: {e}"
@@ -838,18 +995,24 @@ class Handler(BaseHTTPRequestHandler):
 
     def send_json(self, code, obj):
         blob = json.dumps(obj, ensure_ascii=False).encode()
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(blob)))
-        self.end_headers()
-        self.wfile.write(blob)
+        try:
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(blob)))
+            self.end_headers()
+            self.wfile.write(blob)
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass
 
     def send_blob(self, code, blob, ctype):
-        self.send_response(code)
-        self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(blob)))
-        self.end_headers()
-        self.wfile.write(blob)
+        try:
+            self.send_response(code)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(blob)))
+            self.end_headers()
+            self.wfile.write(blob)
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass
 
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
@@ -859,6 +1022,15 @@ class Handler(BaseHTTPRequestHandler):
         elif path.startswith("/outputs/"):
             name = os.path.basename(path)
             full = os.path.join(OUTPUT_DIR, name)
+            if not os.path.isfile(full):
+                self.send_json(404, {"error": "not found"})
+                return
+            ctype = mimetypes.guess_type(name)[0] or "application/octet-stream"
+            with open(full, "rb") as f:
+                self.send_blob(200, f.read(), ctype)
+        elif path.startswith("/uploads/"):
+            name = os.path.basename(path)
+            full = os.path.join(UPLOAD_DIR, name)
             if not os.path.isfile(full):
                 self.send_json(404, {"error": "not found"})
                 return
@@ -889,8 +1061,8 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/presets":
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             source = (q.get("source") or ["ours"])[0]
-            if source not in ("ours", "input", "output"):
-                self.send_json(400, {"error": "source 只能是 ours / input / output"})
+            if source not in ("ours", "uploads", "input", "output"):
+                self.send_json(400, {"error": "source 只能是 ours / uploads / input / output"})
                 return
             self.send_json(200, list_presets(source))
         elif path == "/api/gallery":
@@ -919,15 +1091,16 @@ class Handler(BaseHTTPRequestHandler):
                 job = JOBS.get(jid)
                 snapshot = dict(job) if job else None
             if not snapshot:
+                meta = get_file_metadata(f"{jid}_img.png")
+                if meta and meta.get("id"):
+                    snapshot = meta
+            if not snapshot:
                 self.send_json(404, {"error": "no such job"})
                 return
-            snapshot.pop("params", None)
             self.send_json(200, snapshot)
         elif path == "/api/jobs":
             with LOCK:
                 items = [dict(v) for v in JOBS.values()]
-            for it in items:
-                it.pop("params", None)
             items.sort(key=lambda x: x["started_at"], reverse=True)
             self.send_json(200, items[:50])
         else:
@@ -938,6 +1111,21 @@ class Handler(BaseHTTPRequestHandler):
         if not n:
             return {}
         return json.loads(self.rfile.read(n).decode() or "{}")
+
+    def do_DELETE(self):
+        path = urllib.parse.urlparse(self.path).path
+        if path in ("/api/gallery", "/api/gallery/delete"):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            file = (q.get("file") or [""])[0]
+            if not file:
+                try:
+                    body = self.read_body()
+                    file = body.get("file", "")
+                except Exception:
+                    file = ""
+            self.handle_gallery_delete({"file": file})
+        else:
+            self.send_json(404, {"error": "not found"})
 
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
@@ -952,6 +1140,8 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/jobs":
             self.handle_job(body)
+        elif path == "/api/gallery/delete":
+            self.handle_gallery_delete(body)
         elif path == "/api/prompt/optimize":
             self.handle_prompt_optimize(body)
         elif path == "/api/settings":
@@ -962,6 +1152,30 @@ class Handler(BaseHTTPRequestHandler):
             self.handle_settings_models(body)
         else:
             self.send_json(404, {"error": "not found"})
+
+    def handle_gallery_delete(self, body):
+        file = os.path.basename(str(body.get("file") or "").strip())
+        if not file or file in (".", ".."):
+            self.send_json(400, {"error": "无效的文件名"})
+            return
+        full = os.path.join(OUTPUT_DIR, file)
+        if not os.path.isfile(full):
+            full = os.path.join(UPLOAD_DIR, file)
+        if not os.path.isfile(full):
+            self.send_json(404, {"error": "文件不存在或已被删除"})
+            return
+        try:
+            os.remove(full)
+            jid = file.split("_")[0]
+            meta_path = os.path.join(OUTPUT_DIR, f"{jid}.meta.json")
+            if os.path.isfile(meta_path):
+                try:
+                    os.remove(meta_path)
+                except OSError:
+                    pass
+            self.send_json(200, {"ok": True, "file": file})
+        except Exception as e:
+            self.send_json(500, {"error": f"删除失败: {e}"})
 
     def handle_upload(self):
         ctype = self.headers.get("Content-Type", "")
@@ -992,9 +1206,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(400, {"error": f"只支持 {'/'.join(IMG_EXT)}，收到 {ext or '无后缀'}"})
             return
         name = f"{uuid.uuid4().hex[:8]}_up{ext}"
-        with open(os.path.join(OUTPUT_DIR, name), "wb") as f:
+        with open(os.path.join(UPLOAD_DIR, name), "wb") as f:
             f.write(content)
-        self.send_json(200, {"source": "ours", "name": name, "subfolder": ""})
+        self.send_json(200, {"source": "upload", "name": name, "subfolder": ""})
 
     def handle_prompt_optimize(self, body):
         prompt = (body.get("prompt") or "").strip()
@@ -1071,8 +1285,8 @@ class Handler(BaseHTTPRequestHandler):
             if not ref:
                 ref = None
             else:
-                if not isinstance(ref, dict) or ref.get("source") not in ("ours", "input", "output"):
-                    raise ValueError('ref 需要形如 {"source": "ours/input/output", "name": "文件名"}')
+                if not isinstance(ref, dict) or ref.get("source") not in ("ours", "upload", "uploads", "input", "output"):
+                    raise ValueError('ref 需要形如 {"source": "ours/upload/uploads/input/output", "name": "文件名"}')
                 if not str(ref.get("name", "")).strip():
                     raise ValueError("ref.name 不能为空")
                 ref = {"source": ref["source"], "name": str(ref["name"]).strip(), "subfolder": str(ref.get("subfolder", ""))}

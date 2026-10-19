@@ -4,6 +4,7 @@ config.json
 
 # Generated media outputs & caches
 outputs/
+uploads/
 __pycache__/
 *.pyc
 

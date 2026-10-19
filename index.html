@@ -533,6 +533,17 @@
     background: rgba(0, 0, 0, 0.75); color: #fff; padding: 0.1rem 0.35rem;
     border-radius: 4px; backdrop-filter: blur(4px);
   }
+  .gallery-item .gallery-del-btn {
+    position: absolute; top: 5px; left: 5px; width: 22px; height: 22px;
+    border-radius: 5px; background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(239, 68, 68, 0.45); color: #fca5a5;
+    font-size: 11px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; opacity: 0; transition: all 0.18s; z-index: 10;
+  }
+  .gallery-item:hover .gallery-del-btn { opacity: 1; }
+  .gallery-del-btn:hover {
+    background: #ef4444; color: #fff; border-color: #ef4444; transform: scale(1.15);
+  }
 
   /* Logs Accordion */
   .logs-card {
@@ -738,6 +749,7 @@
 
       <div class="ref-tabs">
         <div class="ref-tab active" data-src="ours">最近产物</div>
+        <div class="ref-tab" data-src="uploads">上传历史</div>
         <div class="ref-tab" data-src="output">ComfyUI 图库</div>
         <div class="ref-tab" data-src="input">Input 目录</div>
       </div>
@@ -930,10 +942,11 @@
             <span class="meta-pill" id="hero-seed-badge">种子: 123456</span>
           </div>
           <div class="hero-actions">
-            <a class="btn-ghost" id="hero-download-btn" download href="#">📥 下载高清原件</a>
+            <a class="btn-ghost" id="hero-download-btn" download href="#">📥 下载原件</a>
             <button class="btn-ghost" id="hero-to-video-btn" title="把这张图作为首帧送入图生视频">🎬 转为视频首帧</button>
             <button class="btn-ghost" id="hero-to-i2i-btn" title="把这张图作为参考图送入图生图">🖼️ 以此图重绘</button>
             <button class="btn-ghost" id="hero-reuse-btn" title="复用此任务的全部参数和提示词">🎲 复用参数</button>
+            <button class="btn-ghost" id="hero-del-btn" style="color:var(--danger)" title="从磁盘彻底删除此产物">🗑️ 删除</button>
           </div>
         </div>
         <div class="hero-prompt-text" id="hero-prompt-box"></div>
@@ -1271,7 +1284,7 @@ async function loadPresets(source) {
     }
     $("ref-grid").innerHTML = items.map((it, idx) => {
       const q = `/api/preview?source=${encodeURIComponent(it.source)}&name=${encodeURIComponent(it.name)}&subfolder=${encodeURIComponent(it.subfolder || "")}`;
-      return `<img data-idx="${idx}" loading="lazy" src="${q}" alt="${esc(it.name)}" title="${esc(it.name)}" />`;
+      return `<img data-idx="${idx}" loading="lazy" draggable="true" src="${q}" alt="${esc(it.name)}" title="${esc(it.name)}" />`;
     }).join("");
 
     $("ref-grid")._items = items;
@@ -1279,6 +1292,11 @@ async function loadPresets(source) {
       el.onclick = () => {
         const item = items[+el.dataset.idx];
         selectReference(item, el);
+      };
+      el.ondragstart = (e) => {
+        const item = items[+el.dataset.idx];
+        e.dataTransfer.setData("application/json", JSON.stringify(item));
+        e.dataTransfer.setData("text/plain", item.name);
       };
     });
   } catch (err) {
@@ -1311,6 +1329,43 @@ $("dropzone").ondragleave = () => { $("dropzone").style.borderColor = "var(--bor
 $("dropzone").ondrop = e => {
   e.preventDefault();
   $("dropzone").style.borderColor = "var(--border-light)";
+
+  // 1) 优先判断是否从「最近产物」或「画廊」拖过来的站内图片，直接选定不重复上传
+  const jsonStr = e.dataTransfer.getData("application/json");
+  if (jsonStr) {
+    try {
+      const item = JSON.parse(jsonStr);
+      if (item && item.name && item.source) {
+        selectReference(item, null);
+        return;
+      }
+    } catch (_) {}
+  }
+
+  const uri = e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain");
+  if (uri && (uri.includes("/outputs/") || uri.includes("/uploads/") || uri.includes("/api/preview"))) {
+    let source = "ours", name = "", subfolder = "";
+    if (uri.includes("/api/preview")) {
+      try {
+        const urlObj = new URL(uri, window.location.origin);
+        source = urlObj.searchParams.get("source") || "ours";
+        name = urlObj.searchParams.get("name") || "";
+        subfolder = urlObj.searchParams.get("subfolder") || "";
+      } catch (_) {}
+    } else if (uri.includes("/outputs/")) {
+      source = "ours";
+      name = uri.split("/outputs/")[1].split("?")[0].split("#")[0];
+    } else if (uri.includes("/uploads/")) {
+      source = "upload";
+      name = uri.split("/uploads/")[1].split("?")[0].split("#")[0];
+    }
+    if (name) {
+      selectReference({ source, name, subfolder }, null);
+      return;
+    }
+  }
+
+  // 2) 只有从本地磁盘拖入的文件，才调用上传接口
   if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
 };
 $("file-input").onchange = () => {
@@ -1323,15 +1378,17 @@ async function uploadFile(file) {
   $("ref-grid").innerHTML = '<p class="hint">正在上传图片并注册进工作台…</p>';
   try {
     const it = await api("/api/upload", { method: "POST", body: fd });
-    document.querySelectorAll(".ref-tabs .ref-tab").forEach(t => t.classList.toggle("active", t.dataset.src === "ours"));
-    await loadPresets("ours");
+    document.querySelectorAll(".ref-tabs .ref-tab").forEach(t => t.classList.toggle("active", t.dataset.src === "uploads"));
+    await loadPresets("uploads");
     const idx = ($("ref-grid")._items || []).findIndex(x => x.name === it.name);
     if (idx >= 0) {
       selectReference($("ref-grid")._items[idx], document.querySelectorAll("#ref-grid img")[idx]);
+    } else {
+      selectReference(it, null);
     }
   } catch (err) {
     alert("上传失败: " + err.message);
-    loadPresets("ours");
+    loadPresets("uploads");
   }
   $("file-input").value = "";
 }
@@ -1473,6 +1530,10 @@ function updateJobProgress(job) {
   $("logs-terminal").scrollTop = $("logs-terminal").scrollHeight;
 }
 
+function isFilename(str) {
+  return !str || /\.(png|jpg|jpeg|webp|mp4)$/i.test(String(str).trim());
+}
+
 // ---------- 结果主展示台渲染 ----------
 function renderHeroStage(job) {
   currentHeroJob = job;
@@ -1513,9 +1574,12 @@ function renderHeroStage(job) {
   $("hero-time-badge").textContent = `耗时 ${output.seconds}s`;
   $("hero-seed-badge").textContent = `种子: ${job.seed}`;
 
+  const rawClean = !isFilename(job.prompt_raw) ? job.prompt_raw : (!isFilename(job.prompt_en) ? job.prompt_en : "");
+  const enClean = !isFilename(job.prompt_en) ? job.prompt_en : (!isFilename(job.prompt_raw) ? job.prompt_raw : "");
+
   $("hero-prompt-box").innerHTML = `
-    <div style="font-size:.72rem;color:var(--accent);margin-bottom:.2rem">【原始需求】: ${esc(job.prompt_raw)}</div>
-    <div style="font-size:.75rem;color:#e2e8f0">【模型提示词】: ${esc(job.prompt_en || job.prompt_raw)}</div>
+    <div style="font-size:.72rem;color:var(--accent);margin-bottom:.2rem">【原始需求】: ${esc(rawClean || "（画廊产物未记录原始中文）")}</div>
+    <div style="font-size:.75rem;color:#e2e8f0">【模型提示词】: ${esc(enClean || "（画廊产物未记录英文提示词）")}</div>
   `;
 
   $("hero-download-btn").href = fileUrl;
@@ -1528,7 +1592,13 @@ $("hero-to-video-btn").onclick = () => {
   document.querySelector('.mode-btn[data-mode="video"][data-ref="1"]').click();
   const item = { source: "ours", name: currentHeroJob.image.file, subfolder: "" };
   selectReference(item, null);
-  if (currentHeroJob.prompt_raw) $("prompt").value = currentHeroJob.prompt_raw;
+  const raw = currentHeroJob.prompt_raw && !isFilename(currentHeroJob.prompt_raw)
+    ? currentHeroJob.prompt_raw
+    : (!isFilename(currentHeroJob.prompt_en) ? currentHeroJob.prompt_en : "");
+  if (raw) $("prompt").value = raw;
+  if (currentHeroJob.prompt_en && !isFilename(currentHeroJob.prompt_en)) {
+    $("prompt-en").value = currentHeroJob.prompt_en;
+  }
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
@@ -1537,16 +1607,76 @@ $("hero-to-i2i-btn").onclick = () => {
   document.querySelector('.mode-btn[data-mode="image"][data-ref="1"]').click();
   const item = { source: "ours", name: currentHeroJob.image.file, subfolder: "" };
   selectReference(item, null);
-  if (currentHeroJob.prompt_raw) $("prompt").value = currentHeroJob.prompt_raw;
+  const raw = currentHeroJob.prompt_raw && !isFilename(currentHeroJob.prompt_raw)
+    ? currentHeroJob.prompt_raw
+    : (!isFilename(currentHeroJob.prompt_en) ? currentHeroJob.prompt_en : "");
+  if (raw) $("prompt").value = raw;
+  if (currentHeroJob.prompt_en && !isFilename(currentHeroJob.prompt_en)) {
+    $("prompt-en").value = currentHeroJob.prompt_en;
+  }
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
 $("hero-reuse-btn").onclick = () => {
   if (!currentHeroJob) return;
-  if (currentHeroJob.prompt_raw) $("prompt").value = currentHeroJob.prompt_raw;
-  if (currentHeroJob.prompt_en) $("prompt-en").value = currentHeroJob.prompt_en;
-  if (currentHeroJob.seed) $("seed").value = currentHeroJob.seed;
+  const raw = currentHeroJob.prompt_raw && !isFilename(currentHeroJob.prompt_raw)
+    ? currentHeroJob.prompt_raw
+    : (!isFilename(currentHeroJob.prompt_en) ? currentHeroJob.prompt_en : "");
+  if (raw) $("prompt").value = raw;
+  if (currentHeroJob.prompt_en && !isFilename(currentHeroJob.prompt_en)) {
+    $("prompt-en").value = currentHeroJob.prompt_en;
+  }
+  const s = (currentHeroJob.seed !== undefined && currentHeroJob.seed !== null && currentHeroJob.seed !== "—")
+    ? currentHeroJob.seed
+    : currentHeroJob.params?.seed;
+  if (s !== undefined && s !== null) {
+    $("seed").value = s;
+  }
+  if (currentHeroJob.style) {
+    $("prompt-style").value = currentHeroJob.style;
+  }
+  const p = currentHeroJob.params || {};
+  if (p.negative_prompt !== undefined) {
+    $("negative-prompt").value = p.negative_prompt;
+  }
+  if (p.cfg !== undefined) {
+    $("cfg").value = p.cfg;
+    if ($("cfg-val")) $("cfg-val").textContent = p.cfg;
+  }
+  if (p.steps !== undefined) {
+    $("steps").value = p.steps;
+    if ($("steps-val")) $("steps-val").textContent = p.steps;
+  }
+  if (p.denoise !== undefined) {
+    $("denoise").value = p.denoise;
+    if ($("denoise-val")) $("denoise-val").textContent = (+p.denoise).toFixed(2);
+  }
+  if (p.strength !== undefined) {
+    $("strength").value = p.strength;
+    if ($("strength-val")) $("strength-val").textContent = (+p.strength).toFixed(2);
+  }
+  if (p.length !== undefined) {
+    $("length").value = p.length;
+  }
+  if (p.width && p.height) {
+    const wh = `${p.width}x${p.height}`;
+    const rb = document.querySelector(`.ratio-grid .ratio-btn[data-wh="${wh}"]`);
+    if (rb) {
+      document.querySelectorAll(".ratio-grid .ratio-btn").forEach(b => b.classList.remove("active"));
+      rb.classList.add("active");
+      $("size").value = wh;
+    }
+  }
+  updateEstimate();
   window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+$("hero-del-btn").onclick = async () => {
+  if (!currentHeroJob) return;
+  const file = currentHeroJob.image?.file || currentHeroJob.video?.file;
+  if (!file) return;
+  if (!confirm(`确定要从磁盘彻底删除产物「${file}」吗？\n删除后无法恢复。`)) return;
+  await deleteGalleryFile(file);
 };
 
 // ---------- 画廊与产物资产 ----------
@@ -1588,24 +1718,72 @@ function renderGalleryItems() {
     const media = isV
       ? `<video src="${it.url}" muted preload="metadata"></video><span class="badge">视频</span>`
       : `<img src="${it.url}" alt="${esc(it.file)}" loading="lazy" /><span class="badge">图片</span>`;
-    return `<div class="gallery-item" data-idx="${idx}">${media}</div>`;
+    return `
+      <div class="gallery-item" data-idx="${idx}" draggable="true" title="${esc(it.prompt_raw || it.prompt_en || it.file)}">
+        ${media}
+        <button class="gallery-del-btn" data-file="${esc(it.file)}" title="从磁盘彻底删除此产物">✕</button>
+      </div>
+    `;
   }).join("");
 
   document.querySelectorAll(".gallery-item").forEach(el => {
-    el.onclick = () => {
-      const it = filtered[+el.dataset.idx];
+    const it = filtered[+el.dataset.idx];
+    el.onclick = (e) => {
+      if (e.target.closest(".gallery-del-btn")) return;
       loadGalleryItemToStage(it);
     };
+    el.ondragstart = (e) => {
+      e.dataTransfer.setData("application/json", JSON.stringify({ source: "ours", name: it.file, subfolder: "" }));
+      e.dataTransfer.setData("text/plain", it.file);
+    };
   });
+
+  document.querySelectorAll(".gallery-del-btn").forEach(btn => {
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      const file = btn.dataset.file;
+      if (!confirm(`确定要从磁盘彻底删除产物「${file}」吗？\n删除后不可恢复。`)) return;
+      await deleteGalleryFile(file);
+    };
+  });
+}
+
+async function deleteGalleryFile(file) {
+  try {
+    await api("/api/gallery/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file })
+    });
+    galleryData = galleryData.filter(x => x.file !== file);
+    renderGalleryItems();
+
+    if (currentHeroJob) {
+      const curFile = currentHeroJob.image?.file || currentHeroJob.video?.file;
+      if (curFile === file) {
+        currentHeroJob = null;
+        $("hero-placeholder").style.display = "flex";
+        $("hero-result-view").hidden = true;
+        $("hero-info").hidden = true;
+      }
+    }
+    if (useRef) {
+      loadPresets("ours");
+    }
+  } catch (err) {
+    alert("删除失败: " + err.message);
+  }
 }
 
 function loadGalleryItemToStage(item) {
   const isVideo = item.type === "video";
   const fakeJob = {
     mode: isVideo ? "video" : "image",
-    seed: "—",
-    prompt_raw: item.file,
-    prompt_en: "",
+    seed: (item.seed !== undefined && item.seed !== null && item.seed !== 0) ? item.seed : (item.params?.seed || "—"),
+    prompt_raw: item.prompt_raw || item.prompt_en || "",
+    prompt_en: item.prompt_en || "",
+    style: item.style || "photorealistic",
+    params: item.params || {},
     logs: [`从画廊载入产物 ${item.file}`],
     image: !isVideo ? { file: item.file, seconds: 0 } : null,
     video: isVideo ? { file: item.file, seconds: 0 } : null,
