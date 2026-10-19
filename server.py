@@ -550,6 +550,89 @@ def wf_video(prompt, image_name, width, height, length, steps, seed, strength=1.
     }
 
 
+def ensure_av_available():
+    """保证 PyAV 与 Pillow 可正常加载（自动挂载 ComfyUI venv 中的 site-packages）"""
+    comfy_dir = CONFIG.get("comfy_dir") or resolve_comfy_dir()
+    site_pkg = os.path.join(comfy_dir.replace("\\", "/"), "venv", "Lib", "site-packages")
+    if os.path.isdir(site_pkg) and site_pkg not in sys.path:
+        sys.path.insert(0, site_pkg)
+
+
+def convert_mp4_to_gif(video_filename, job_meta=None, max_dim=480, target_fps=12):
+    """将生成的 MP4 视频快速转为高品质轻量自适应调色板循环 GIF 动图"""
+    ensure_av_available()
+    try:
+        import av
+        from PIL import Image
+    except Exception as e:
+        logger.error(f"无法加载 av / PIL 动图组件: {e}")
+        return None
+
+    src_path = os.path.join(OUTPUT_DIR, video_filename)
+    if not os.path.isfile(src_path):
+        return None
+
+    base_name = os.path.splitext(video_filename)[0]
+    gif_filename = (base_name[:-4] + "_anim.gif") if base_name.endswith("_vid") else (base_name + ".gif")
+    dst_path = os.path.join(OUTPUT_DIR, gif_filename)
+
+    try:
+        container = av.open(src_path)
+        stream = container.streams.video[0]
+        src_fps = float(stream.average_rate or 24.0)
+        step = max(1, round(src_fps / float(target_fps)))
+        real_fps = src_fps / step
+        frame_dur_ms = max(30, int(1000.0 / real_fps))
+
+        frames = []
+        for idx, frame in enumerate(container.decode(stream)):
+            if idx % step == 0:
+                im = frame.to_image()
+                im.thumbnail((max_dim, max_dim), Image.Resampling.BILINEAR)
+                frames.append(im.convert("P", palette=Image.Palette.ADAPTIVE, colors=256))
+
+        if not frames:
+            return None
+
+        frames[0].save(
+            dst_path,
+            save_all=True,
+            append_images=frames[1:],
+            duration=frame_dur_ms,
+            loop=0,
+            optimize=False
+        )
+
+        # 同步写入元数据，以便画廊完整读取提示词、种子和参数
+        src_meta = get_file_metadata(video_filename)
+        if not src_meta and job_meta:
+            src_meta = {
+                "prompt_raw": job_meta.get("prompt_raw", ""),
+                "prompt_en": job_meta.get("prompt_en", ""),
+                "style": job_meta.get("style", "photorealistic"),
+                "seed": job_meta.get("seed", 0),
+                "params": job_meta.get("params", {}),
+            }
+        if src_meta:
+            gif_meta_path = os.path.join(OUTPUT_DIR, f"{gif_filename}.meta.json")
+            with open(gif_meta_path, "w", encoding="utf-8") as f:
+                json.dump({
+                    "id": job_meta.get("id") if job_meta else base_name.split("_")[0],
+                    "mode": "gif",
+                    "file": gif_filename,
+                    "prompt_raw": src_meta.get("prompt_raw", ""),
+                    "prompt_en": src_meta.get("prompt_en", ""),
+                    "style": src_meta.get("style", "photorealistic"),
+                    "seed": src_meta.get("seed", 0),
+                    "params": src_meta.get("params", {}),
+                }, f, ensure_ascii=False, indent=2)
+
+        return gif_filename
+    except Exception as e:
+        logger.error(f"转换 GIF 异常: {e}")
+        return None
+
+
 STANDARD_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -672,7 +755,16 @@ def save_job_meta(job):
 
 
 def get_file_metadata(fn):
-    """获取产物的元数据 (prompt, seed, params)，优先从 {jid}.meta.json 读取，兜底从 PNG chunk 解析"""
+    """获取产物的元数据 (prompt, seed, params)，优先从 {fn}.meta.json 或 {jid}.meta.json 读取，兜底从 PNG chunk 解析"""
+    # 优先检查文件专属的 meta.json (如 GIF 专属元数据)
+    specific_meta = os.path.join(OUTPUT_DIR, f"{fn}.meta.json")
+    if os.path.isfile(specific_meta):
+        try:
+            with open(specific_meta, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
     jid = fn.split("_")[0]
     meta_path = os.path.join(OUTPUT_DIR, f"{jid}.meta.json")
     if os.path.isfile(meta_path):
@@ -776,7 +868,7 @@ def list_gallery(limit=100):
         return []
     for fn in os.listdir(OUTPUT_DIR):
         ext = os.path.splitext(fn)[1].lower()
-        if ext not in (".png", ".jpg", ".jpeg", ".webp", ".mp4"):
+        if ext not in (".png", ".jpg", ".jpeg", ".webp", ".mp4", ".gif"):
             continue
         # 严格过滤用户上传的临时参考图与元数据文件，绝不混入生成作品画廊
         if "_up." in fn or fn.endswith("_up") or fn.endswith(".meta.json"):
@@ -786,11 +878,11 @@ def list_gallery(limit=100):
             st = os.stat(full)
         except OSError:
             continue
-        is_video = ext == ".mp4"
+        item_type = "video" if ext == ".mp4" else ("gif" if ext == ".gif" else "image")
         meta = get_file_metadata(fn)
         found.append({
             "file": fn,
-            "type": "video" if is_video else "image",
+            "type": item_type,
             "size": st.st_size,
             "mtime": st.st_mtime,
             "url": f"/outputs/{fn}",
@@ -1133,6 +1225,14 @@ def stage_video(job, prompt, params, seed, ref):
         fname, meta = pull(item, f"{job['id']}_vid")
         job["video"] = {"file": fname, "seconds": round(secs, 1), **meta}
         job["logs"].append(f"图生视频完成 {round(secs, 1)}s -> {fname}")
+
+        # 如果开启了自动生成 GIF 动图
+        if params.get("auto_gif"):
+            job["logs"].append("正在自动将视频导出为动态表情包 GIF...")
+            gif_name = convert_mp4_to_gif(fname, job_meta=job)
+            if gif_name:
+                job["gif"] = {"file": gif_name}
+                job["logs"].append(f"动图 GIF 导出完成 -> {gif_name}")
     finally:
         unstage(name, temp)
 
@@ -1582,6 +1682,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"ok": True, "cleared_count": len(cleared), "ids": cleared})
         elif path == "/api/gallery/delete":
             self.handle_gallery_delete(body)
+        elif path == "/api/video/to-gif":
+            self.handle_video_to_gif(body)
         elif path == "/api/prompt/optimize":
             self.handle_prompt_optimize(body)
         elif path == "/api/settings":
@@ -1594,6 +1696,28 @@ class Handler(BaseHTTPRequestHandler):
             self.handle_open_folder()
         else:
             self.send_json(404, {"error": "not found"})
+
+    def handle_video_to_gif(self, body):
+        file = os.path.basename(str(body.get("file") or "").strip())
+        if not file or not file.lower().endswith(".mp4"):
+            self.send_json(400, {"error": "请提供有效的 MP4 视频文件名"})
+            return
+        full = os.path.join(OUTPUT_DIR, file)
+        if not os.path.isfile(full):
+            self.send_json(404, {"error": "未找到视频源文件"})
+            return
+        max_dim = int(body.get("max_dim") or 480)
+        target_fps = int(body.get("target_fps") or 12)
+        gif_name = convert_mp4_to_gif(file, max_dim=max_dim, target_fps=target_fps)
+        if not gif_name:
+            self.send_json(500, {"error": "GIF 转换失败，请检查视频流或后台依赖"})
+            return
+        self.send_json(200, {
+            "ok": True,
+            "gif": gif_name,
+            "url": f"/outputs/{gif_name}",
+            "file": gif_name
+        })
 
     def handle_open_folder(self):
         if not is_local_client(self):
@@ -1631,6 +1755,13 @@ class Handler(BaseHTTPRequestHandler):
             if os.path.isfile(meta_path):
                 try:
                     os.remove(meta_path)
+                except OSError:
+                    pass
+            # 同时删除专属的 {file}.meta.json (例如 GIF 元数据)
+            spec_meta = os.path.join(OUTPUT_DIR, f"{file}.meta.json")
+            if os.path.isfile(spec_meta):
+                try:
+                    os.remove(spec_meta)
                 except OSError:
                     pass
             self.send_json(200, {"ok": True, "file": file})
@@ -1736,6 +1867,7 @@ class Handler(BaseHTTPRequestHandler):
                 "lora_name": str(body.get("lora_name") or "").strip() or None,
                 "lora_strength": float(body.get("lora_strength", 1.0)),
                 "lightning": bool(body.get("lightning", False)),
+                "auto_gif": bool(body.get("auto_gif", False)),
                 "v_width": int(body.get("v_width", 768)),
                 "v_height": int(body.get("v_height", 512)),
                 "length": int(body.get("length", 49)),

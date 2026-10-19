@@ -546,6 +546,9 @@
     background: rgba(0, 0, 0, 0.75); color: #fff; padding: 0.1rem 0.35rem;
     border-radius: 4px; backdrop-filter: blur(4px);
   }
+  .gallery-item .badge.badge-gif {
+    background: rgba(236, 72, 153, 0.85); color: #fff; font-weight: 600;
+  }
   .gallery-item .gallery-del-btn {
     position: absolute; top: 5px; left: 5px; width: 22px; height: 22px;
     border-radius: 5px; background: rgba(15, 23, 42, 0.85);
@@ -1705,14 +1708,15 @@
         <label>视频输出分辨率</label>
         <select id="vsize">
           <option value="768x512">768 × 512 (标准横屏 · 推荐)</option>
-          <option value="512x512">512 × 512 (方形视频)</option>
+          <option value="512x512">512 × 512 (方形 · GIF表情包首选)</option>
           <option value="512x320">512 × 320 (极速 / 4GB显存首选)</option>
         </select>
         <div class="row-2" style="margin-top:.75rem">
           <div>
             <label>视频总帧数</label>
             <select id="length">
-              <option value="49">49 帧 (约 2 秒 · 极速)</option>
+              <option value="33">33 帧 (约 1.4 秒 · 极速表情包/GIF)</option>
+              <option value="49" selected>49 帧 (约 2 秒 · 极速)</option>
               <option value="81">81 帧 (约 3.4 秒 · 推荐)</option>
               <option value="97">97 帧 (约 4 秒 · 长镜头)</option>
             </select>
@@ -1721,6 +1725,14 @@
             <label>视频采样步数</label>
             <input type="number" id="vsteps" value="20" min="10" max="40" />
           </div>
+        </div>
+        <!-- 自动导出 GIF 选项 -->
+        <div style="margin-top:.75rem;padding:.5rem .75rem;background:rgba(6,182,212,0.06);border:1px dashed rgba(6,182,212,0.3);border-radius:8px;display:flex;align-items:center;justify-content:space-between">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin:0;font-size:.78rem;font-weight:600;color:#38bdf8">
+            <input type="checkbox" id="auto-gif" style="width:15px;height:15px;accent-color:#06b6d4;cursor:pointer" />
+            <span>🎞️ 生成后自动导出循环 GIF</span>
+          </label>
+          <span style="font-size:.7rem;color:#94a3b8">即得即用 · 免转码</span>
         </div>
       </div>
 
@@ -2158,6 +2170,7 @@
           </div>
           <div class="hero-actions">
             <a class="btn-ghost" id="hero-download-btn" download href="#">📥 下载原件</a>
+            <button class="btn-ghost" id="hero-to-gif-btn" title="把此视频快速转成轻量循环 GIF 动图/表情包" style="display:none">🎞️ 导出 GIF</button>
             <button class="btn-ghost" id="hero-to-video-btn" title="把这张图作为首帧送入图生视频">🎬 转为视频首帧</button>
             <button class="btn-ghost" id="hero-to-i2i-btn" title="把这张图作为参考图送入图生图">🖼️ 以此图重绘</button>
             <button class="btn-ghost" id="hero-reuse-btn" title="复用此任务的全部参数和提示词">🎲 复用参数</button>
@@ -2176,6 +2189,7 @@
           <button class="filter-pill active" data-filter="all">全部</button>
           <button class="filter-pill" data-filter="image">图片</button>
           <button class="filter-pill" data-filter="video">视频</button>
+          <button class="filter-pill" data-filter="gif">动图 GIF</button>
           <button class="filter-pill" id="btn-refresh-gallery">🔄 刷新</button>
           <button class="filter-pill" id="btn-open-folder" title="在本地文件管理器中打开 outputs 文件夹 (仅本机可用)">📂 打开文件夹</button>
         </div>
@@ -2279,6 +2293,7 @@
           <button class="btn-ghost" id="lightbox-btn-reuse" title="复用此产物的提示词与参数到工作区">🎲 复用参数</button>
           <button class="btn-ghost" id="lightbox-btn-to-i2i" title="以此图作为参考图送入以图生图">🖼️ 以此图重绘</button>
           <button class="btn-ghost" id="lightbox-btn-to-video" title="以此图作为首帧送入图生视频">🎬 转为视频首帧</button>
+          <button class="btn-ghost" id="lightbox-btn-to-gif" title="将此视频快速导出为 GIF 动图/表情包" style="display:none">🎞️ 导出 GIF</button>
         </div>
         <div class="lightbox-actions-group">
           <button class="btn-ghost" id="lightbox-btn-to-stage" style="color:var(--accent)" title="将此产物置入主展示台">🎯 载入主舞台</button>
@@ -3047,6 +3062,7 @@ async function triggerGeneration() {
     v_width: vw, v_height: vh,
     length: +$("length").value || 49,
     v_steps: +$("vsteps").value || 20,
+    auto_gif: $("auto-gif") ? $("auto-gif").checked : false,
     denoise: +$("denoise").value || 0.50,
     strength: +$("strength").value || 1.0,
     ref: useRef ? selectedRef : null,
@@ -3084,7 +3100,7 @@ function updateJobProgress(job) {
 }
 
 function isFilename(str) {
-  return !str || /\.(png|jpg|jpeg|webp|mp4)$/i.test(String(str).trim());
+  return !str || /\.(png|jpg|jpeg|webp|mp4|gif)$/i.test(String(str).trim());
 }
 
 // ---------- 结果主展示台渲染 ----------
@@ -3096,8 +3112,9 @@ function renderHeroStage(job) {
   $("hero-result-view").hidden = false;
   $("hero-info").hidden = false;
 
-  const isVideo = job.mode === "video";
-  const output = isVideo ? job.video : job.image;
+  const isVideo = (job.mode === "video") || Boolean(job.video);
+  const isGif = (job.mode === "gif") || Boolean(job.gif) || (job.image && job.image.file && job.image.file.toLowerCase().endsWith(".gif"));
+  const output = isVideo ? job.video : (isGif ? (job.gif || job.image) : job.image);
 
   if (job.error) {
     $("hero-result-view").innerHTML = `
@@ -3119,17 +3136,19 @@ function renderHeroStage(job) {
     `;
   } else {
     $("hero-result-view").innerHTML = `
-      <img src="${fileUrl}" alt="生成图片" id="hero-img-el" />
+      <img src="${fileUrl}" alt="生成产物" id="hero-img-el" />
     `;
   }
 
-  $("hero-type-badge").textContent = isVideo ? "🎬 视频" : "🎨 图片";
-  $("hero-dim-badge").textContent = output.width ? `${output.width} × ${output.height}` : (isVideo ? "768 × 512" : "HD");
-  $("hero-time-badge").textContent = `耗时 ${output.seconds}s`;
+  $("hero-type-badge").textContent = isVideo ? "🎬 视频" : (isGif ? "🎞️ 动图" : "🎨 图片");
+  $("hero-type-badge").className = `meta-pill ${isVideo ? "" : "highlight"}`;
+  $("hero-dim-badge").textContent = output.width ? `${output.width} × ${output.height}` : (isVideo ? "768 × 512" : (isGif ? "480 × 480" : "HD"));
+  $("hero-time-badge").textContent = output.seconds ? `耗时 ${output.seconds}s` : "已就绪";
   $("hero-seed-badge").textContent = `种子: ${job.seed}`;
 
   $("hero-to-video-btn").style.display = isVideo ? "none" : "inline-flex";
   $("hero-to-i2i-btn").style.display = isVideo ? "none" : "inline-flex";
+  $("hero-to-gif-btn").style.display = isVideo ? "inline-flex" : "none";
 
   const rawClean = !isFilename(job.prompt_raw) ? job.prompt_raw : (!isFilename(job.prompt_en) ? job.prompt_en : "");
   const enClean = !isFilename(job.prompt_en) ? job.prompt_en : (!isFilename(job.prompt_raw) ? job.prompt_raw : "");
@@ -3143,11 +3162,52 @@ function renderHeroStage(job) {
   $("hero-download-btn").download = output.file;
 }
 
+// 视频导出为轻量循环 GIF 动图
+async function exportVideoToGif(videoFile, btnElement) {
+  if (!videoFile) return;
+  const originalText = btnElement ? btnElement.textContent : "🎞️ 导出 GIF";
+  if (btnElement) {
+    btnElement.disabled = true;
+    btnElement.textContent = "⏳ 导出中...";
+  }
+  try {
+    const res = await api("/api/video/to-gif", { file: videoFile });
+    if (res && res.gif) {
+      showToast("🎉 GIF 动图导出成功！已同步收入产物画廊");
+      await refreshGallery();
+      loadGalleryItemToStage({
+        file: res.gif,
+        type: "gif",
+        url: res.url,
+        params: { width: 480, height: 480 },
+        prompt_raw: currentHeroJob?.prompt_raw || "",
+        prompt_en: currentHeroJob?.prompt_en || "",
+        seed: currentHeroJob?.seed || 0,
+      });
+    } else {
+      alert("GIF 导出失败：" + (res.error || "未知错误"));
+    }
+  } catch (err) {
+    alert("GIF 导出失败：" + err.message);
+  } finally {
+    if (btnElement) {
+      btnElement.disabled = false;
+      btnElement.textContent = originalText;
+    }
+  }
+}
+
+$("hero-to-gif-btn").onclick = async () => {
+  if (!currentHeroJob || !currentHeroJob.video || !currentHeroJob.video.file) return;
+  await exportVideoToGif(currentHeroJob.video.file, $("hero-to-gif-btn"));
+};
+
 // 一键流转动作
 $("hero-to-video-btn").onclick = () => {
-  if (!currentHeroJob || !currentHeroJob.image) return;
+  const imgTarget = currentHeroJob && (currentHeroJob.image || currentHeroJob.gif);
+  if (!imgTarget) return;
   document.querySelector('.mode-btn[data-mode="video"][data-ref="1"]').click();
-  const item = { source: "ours", name: currentHeroJob.image.file, subfolder: "" };
+  const item = { source: "ours", name: imgTarget.file, subfolder: "" };
   selectReference(item, null);
   const raw = currentHeroJob.prompt_raw && !isFilename(currentHeroJob.prompt_raw)
     ? currentHeroJob.prompt_raw
@@ -3160,9 +3220,10 @@ $("hero-to-video-btn").onclick = () => {
 };
 
 $("hero-to-i2i-btn").onclick = () => {
-  if (!currentHeroJob || !currentHeroJob.image) return;
+  const imgTarget = currentHeroJob && (currentHeroJob.image || currentHeroJob.gif);
+  if (!imgTarget) return;
   document.querySelector('.mode-btn[data-mode="image"][data-ref="1"]').click();
-  const item = { source: "ours", name: currentHeroJob.image.file, subfolder: "" };
+  const item = { source: "ours", name: imgTarget.file, subfolder: "" };
   selectReference(item, null);
   const raw = currentHeroJob.prompt_raw && !isFilename(currentHeroJob.prompt_raw)
     ? currentHeroJob.prompt_raw
@@ -3282,6 +3343,7 @@ function renderGalleryItems() {
   const filtered = galleryData.filter(item => {
     if (currentGalleryFilter === "image") return item.type === "image";
     if (currentGalleryFilter === "video") return item.type === "video";
+    if (currentGalleryFilter === "gif") return item.type === "gif";
     return true;
   });
 
@@ -3292,9 +3354,12 @@ function renderGalleryItems() {
 
   $("gallery-grid").innerHTML = filtered.map((it, idx) => {
     const isV = it.type === "video";
+    const isG = it.type === "gif" || (it.file && it.file.toLowerCase().endsWith(".gif"));
+    const badgeText = isV ? "视频" : (isG ? "动图" : "图片");
+    const badgeClass = isG ? "badge badge-gif" : "badge";
     const media = isV
-      ? `<video src="${it.url}" muted preload="metadata"></video><span class="badge">视频</span>`
-      : `<img src="${it.url}" alt="${esc(it.file)}" loading="lazy" /><span class="badge">图片</span>`;
+      ? `<video src="${it.url}" muted preload="metadata"></video><span class="${badgeClass}">${badgeText}</span>`
+      : `<img src="${it.url}" alt="${esc(it.file)}" loading="lazy" /><span class="${badgeClass}">${badgeText}</span>`;
     return `
       <div class="gallery-item" data-idx="${idx}" draggable="true" title="${esc(it.prompt_raw || it.prompt_en || it.file)}">
         ${media}
@@ -3346,7 +3411,7 @@ async function deleteGalleryFile(file) {
     }
 
     if (currentHeroJob) {
-      const curFile = currentHeroJob.image?.file || currentHeroJob.video?.file;
+      const curFile = currentHeroJob.image?.file || currentHeroJob.video?.file || currentHeroJob.gif?.file;
       if (curFile === file) {
         currentHeroJob = null;
         $("hero-placeholder").style.display = "flex";
@@ -3364,16 +3429,18 @@ async function deleteGalleryFile(file) {
 
 function loadGalleryItemToStage(item) {
   const isVideo = item.type === "video";
+  const isGif = item.type === "gif" || (item.file && item.file.toLowerCase().endsWith(".gif"));
   const fakeJob = {
-    mode: isVideo ? "video" : "image",
+    mode: isVideo ? "video" : (isGif ? "gif" : "image"),
     seed: (item.seed !== undefined && item.seed !== null && item.seed !== 0) ? item.seed : (item.params?.seed || "—"),
     prompt_raw: item.prompt_raw || item.prompt_en || "",
     prompt_en: item.prompt_en || "",
     style: item.style || "photorealistic",
     params: item.params || {},
     logs: [`从画廊载入产物 ${item.file}`],
-    image: !isVideo ? { file: item.file, seconds: 0 } : null,
+    image: (!isVideo && !isGif) ? { file: item.file, seconds: 0 } : null,
     video: isVideo ? { file: item.file, seconds: 0 } : null,
+    gif: isGif ? { file: item.file, seconds: 0 } : null,
   };
   renderHeroStage(fakeJob);
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3387,6 +3454,7 @@ function getFilteredGallery() {
   return galleryData.filter(item => {
     if (currentGalleryFilter === "image") return item.type === "image";
     if (currentGalleryFilter === "video") return item.type === "video";
+    if (currentGalleryFilter === "gif") return item.type === "gif";
     return true;
   });
 }
@@ -3451,9 +3519,10 @@ function renderLightboxItem() {
   $("lightbox-counter").textContent = `${currentLightboxIdx + 1} / ${list.length}`;
 
   const isVideo = item.type === "video";
+  const isGif = item.type === "gif" || (item.file && item.file.toLowerCase().endsWith(".gif"));
   const fileUrl = item.url || `/outputs/${item.file}`;
 
-  $("lightbox-badge-type").textContent = isVideo ? "🎬 视频" : "🎨 图片";
+  $("lightbox-badge-type").textContent = isVideo ? "🎬 视频" : (isGif ? "🎞️ 动图" : "🎨 图片");
   $("lightbox-badge-type").className = `meta-pill ${isVideo ? "" : "highlight"}`;
 
   const w = item.params?.width;
@@ -3467,6 +3536,7 @@ function renderLightboxItem() {
     $("lightbox-btn-zoom").style.display = "none";
     $("lightbox-btn-to-i2i").style.display = "none";
     $("lightbox-btn-to-video").style.display = "none";
+    $("lightbox-btn-to-gif").style.display = "inline-flex";
     $("lightbox-media-wrap").innerHTML = `
       <video src="${fileUrl}" controls autoplay loop playsinline></video>
     `;
@@ -3474,6 +3544,7 @@ function renderLightboxItem() {
     $("lightbox-btn-zoom").style.display = "inline-flex";
     $("lightbox-btn-to-i2i").style.display = "inline-flex";
     $("lightbox-btn-to-video").style.display = "inline-flex";
+    $("lightbox-btn-to-gif").style.display = "none";
     $("lightbox-media-wrap").innerHTML = `
       <img src="${fileUrl}" alt="${esc(item.file)}" id="lightbox-img-el" class="can-zoom" />
     `;
@@ -3615,6 +3686,13 @@ $("lightbox-btn-to-video").onclick = () => {
   if (!item || item.type === "video") return;
   loadGalleryItemToStage(item);
   $("hero-to-video-btn").click();
+  closeLightbox();
+};
+
+$("lightbox-btn-to-gif").onclick = async () => {
+  const item = getCurrentLightboxItem();
+  if (!item || item.type !== "video") return;
+  await exportVideoToGif(item.file, $("lightbox-btn-to-gif"));
   closeLightbox();
 };
 
