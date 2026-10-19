@@ -687,12 +687,31 @@ def snap8(v):
     return max(64, int(v) // 8 * 8)
 
 
+def fit_sdxl_dimensions(w, h, max_pixels=1024 * 1024):
+    """保持长宽比，将图片等比缩放到 SDXL 适宜的像素量 (~1MP)，并对齐到 64 的倍数，防止显存爆炸与速度骤降。"""
+    try:
+        w, h = float(w), float(h)
+    except (ValueError, TypeError):
+        return 1024, 1024
+    if w <= 0 or h <= 0:
+        return 1024, 1024
+    scale = (max_pixels / (w * h)) ** 0.5
+    target_w = w * scale
+    target_h = h * scale
+    # SDXL 标准画幅步长为 64，限制单边在 512 ~ 1536 之间
+    sw = max(512, min(1536, int(round(target_w / 64.0)) * 64))
+    sh = max(512, min(1536, int(round(target_h / 64.0)) * 64))
+    return sw, sh
+
+
 def stage_image(job, prompt, params, seed, ref=None):
     """ref=None 是纯文生图；ref 给定则拿那张图做以图生图。"""
     if ref:
-        w = snap8(params["ref_width"] or params["width"])
-        h = snap8(params["ref_height"] or params["height"])
+        rw = params.get("ref_width") or params.get("width") or 1024
+        rh = params.get("ref_height") or params.get("height") or 1024
+        w, h = fit_sdxl_dimensions(rw, rh)
         init, temp = stage_ref(ref, job)
+        job["logs"].append(f"以图生图尺寸优化：原图 {rw}x{rh} -> SDXL 适配分辨率 {w}x{h}")
     else:
         w, h, init, temp = params["width"], params["height"], None, False
     try:
@@ -768,15 +787,16 @@ def run_job(job):
         seed = params.pop("seed") or int(time.time()) % (2**31)
         job["seed"] = seed
 
-        if job["mode"] == "video" and ref is None:
-            job["logs"].append("文生视频 = 两步串联：SDXL 先出图，LTX-Video 再让它动起来")
-            img = stage_image(job, prompt_en, params, seed)
-            ref = {"source": "ours", "name": img, "subfolder": ""}
-        else:
-            img = stage_image(job, prompt_en, params, seed, ref)
-
         if job["mode"] == "video":
+            if ref is None:
+                job["logs"].append("文生视频 = 两步串联：SDXL 先出首帧，LTX-Video 再让它动起来")
+                img = stage_image(job, prompt_en, params, seed)
+                ref = {"source": "ours", "name": img, "subfolder": ""}
+            else:
+                job["logs"].append("图生视频：直接采用选定参考图作为起始帧驱动 LTX-Video")
             stage_video(job, prompt_en, params, seed, ref)
+        else:
+            stage_image(job, prompt_en, params, seed, ref)
 
         job["state"] = "done"
     except Exception as e:
@@ -1041,7 +1061,7 @@ class Handler(BaseHTTPRequestHandler):
                 "length": int(body.get("length", 49)),
                 "v_steps": int(body.get("v_steps", 20)),
                 "v_cfg": float(body.get("v_cfg", 3.0)),
-                "denoise": min(1.0, max(0.1, float(body.get("denoise", 0.75)))),
+                "denoise": min(1.0, max(0.1, float(body.get("denoise", 0.50)))),
                 "strength": min(1.0, max(0.0, float(body.get("strength", 1.0)))),
                 "negative_prompt": negative_prompt,
                 "ref_width": int(body.get("ref_width") or 0),

@@ -753,11 +753,14 @@
 
       <!-- 图生图 / 图生视频专用参数 -->
       <div id="p-denoise-box" style="margin-top:.75rem" hidden>
-        <label>重绘幅度 (Denoise)：<span class="range-val" id="denoise-val">0.75</span></label>
-        <div class="range-box">
-          <input type="range" id="denoise" min="0.1" max="1.0" step="0.05" value="0.75" />
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <label style="margin:0">重绘幅度 (Denoise)：<span class="range-val" id="denoise-val">0.50</span></label>
+          <span class="hint" id="denoise-desc" style="margin:0;color:var(--accent)">平衡原图与创意 (推荐)</span>
         </div>
-        <p class="hint">数值越低越贴近原图，数值越高越听从文字提示词发散构图。</p>
+        <div class="range-box" style="margin-top:.35rem">
+          <input type="range" id="denoise" min="0.1" max="1.0" step="0.05" value="0.50" />
+        </div>
+        <p class="hint">💡 建议：0.35~0.50 忠实原图微调/换画风；0.70 以上大幅重构（原图特征可能被覆盖）。</p>
       </div>
 
       <div id="p-strength-box" style="margin-top:.75rem" hidden>
@@ -1216,7 +1219,16 @@ document.querySelectorAll(".ratio-grid .ratio-btn").forEach(rb => {
 });
 
 // 滑块监听
-$("denoise").oninput = () => $("denoise-val").textContent = (+$("denoise").value).toFixed(2);
+$("denoise").oninput = () => {
+  const v = +$("denoise").value;
+  $("denoise-val").textContent = v.toFixed(2);
+  const desc = $("denoise-desc");
+  if (desc) {
+    if (v < 0.4) desc.textContent = "微调保持原图细节";
+    else if (v <= 0.6) desc.textContent = "平衡原图与创意 (推荐)";
+    else desc.textContent = "强发散重绘 (原图弱保留)";
+  }
+};
 $("strength").oninput = () => $("strength-val").textContent = (+$("strength").value).toFixed(2);
 
 // 种子按钮
@@ -1287,7 +1299,7 @@ function selectReference(item, imgEl) {
   const probe = new Image();
   probe.onload = () => {
     refNaturalDims = { w: probe.naturalWidth, h: probe.naturalHeight };
-    $("ref-selected-dim").textContent = `${probe.naturalWidth} × ${probe.naturalHeight} px`;
+    $("ref-selected-dim").textContent = `${probe.naturalWidth} × ${probe.naturalHeight} px (自动适配为 SDXL 黄金分辨率)`;
   };
   probe.src = url;
 }
@@ -1362,7 +1374,7 @@ async function triggerGeneration() {
     v_width: vw, v_height: vh,
     length: +$("length").value || 49,
     v_steps: +$("vsteps").value || 20,
-    denoise: +$("denoise").value || 0.75,
+    denoise: +$("denoise").value || 0.50,
     strength: +$("strength").value || 1.0,
     ref: useRef ? selectedRef : null,
     ref_width: useRef && refNaturalDims ? refNaturalDims.w : 0,
